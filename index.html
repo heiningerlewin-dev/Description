@@ -1,0 +1,369 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Double Pendulum</title>
+<style>
+  :root {
+    --bg-top: #0b0f1a;
+    --bg-bottom: #05070d;
+    --ink: #e7ecf5;
+    --muted: #8b97ad;
+    --accent: #4fd1ff;
+  }
+
+  * { box-sizing: border-box; }
+
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: radial-gradient(circle at 50% 20%, var(--bg-top), var(--bg-bottom) 70%);
+    color: var(--ink);
+    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  #stage { position: fixed; inset: 0; display: block; }
+
+  .hud {
+    position: fixed;
+    top: 18px;
+    left: 18px;
+    z-index: 2;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .hud h1 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--ink);
+  }
+
+  .hud p {
+    margin: 4px 0 0;
+    font-size: 12px;
+    line-height: 1.5;
+    color: var(--muted);
+  }
+
+  .hud kbd {
+    display: inline-block;
+    padding: 1px 6px;
+    border: 1px solid rgba(255, 255, 255, 0.18);
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: rgba(255, 255, 255, 0.05);
+    font: inherit;
+    font-size: 11px;
+    color: var(--ink);
+  }
+
+  .controls {
+    position: fixed;
+    bottom: 18px;
+    left: 18px;
+    z-index: 2;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .controls button {
+    appearance: none;
+    border: 1px solid rgba(255, 255, 255, 0.14);
+    border-radius: 10px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.04);
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
+  }
+
+  .controls button:hover {
+    background: rgba(79, 209, 255, 0.14);
+    border-color: rgba(79, 209, 255, 0.5);
+  }
+
+  .controls button:active { transform: translateY(1px); }
+</style>
+</head>
+<body>
+  <canvas id="stage"></canvas>
+
+  <div class="hud">
+    <h1>Double Pendulum</h1>
+    <p>
+      Chaotic motion from gravity &middot; the lower bob paints a fading trail<br>
+      <kbd>Space</kbd> pause &middot; <kbd>R</kbd> reset &middot; click / drag to launch a new one
+    </p>
+  </div>
+
+  <div class="controls">
+    <button id="btn-pause" type="button">Pause</button>
+    <button id="btn-reset" type="button">Reset</button>
+    <button id="btn-trail" type="button">Hide trail</button>
+  </div>
+
+<script>
+(() => {
+  "use strict";
+
+  const canvas = document.getElementById("stage");
+  const ctx = canvas.getContext("2d");
+
+  // ---- Physics parameters -------------------------------------------------
+  // A double pendulum: two rods pinned end-to-end, swinging under gravity.
+  const G  = 9.81;   // gravitational acceleration
+  const L1 = 1.0;    // length of upper rod
+  const L2 = 1.0;    // length of lower rod
+  const M1 = 1.0;    // mass of upper bob
+  const M2 = 1.0;    // mass of lower bob
+
+  // State: angles (from vertical) and angular velocities.
+  let state = { t1: 0, t2: 0, w1: 0, w2: 0 };
+
+  // Fixed-timestep accumulator keeps the simulation deterministic and stable
+  // regardless of the display frame rate.
+  const DT = 1 / 240;      // seconds per physics step
+  let acc = 0;
+  let lastTime = 0;
+
+  // ---- Trail --------------------------------------------------------------
+  const trail = [];            // recent world positions of the lower bob
+  const MAX_TRAIL = 1400;      // how many points we keep
+  let showTrail = true;
+  let hue = 0;                 // slowly rotating hue for the ribbon
+
+  // ---- View / layout ------------------------------------------------------
+  let dpr = 1, cx = 0, cy = 0, scale = 1;
+
+  function resize() {
+    dpr = Math.min(window.devicePixelRatio || 1, 2);
+    canvas.width  = Math.floor(window.innerWidth  * dpr);
+    canvas.height = Math.floor(window.innerHeight * dpr);
+    canvas.style.width  = window.innerWidth + "px";
+    canvas.style.height = window.innerHeight + "px";
+
+    // Pivot sits a little above centre; scale so the pendulum fits the view.
+    cx = canvas.width / 2;
+    cy = canvas.height * 0.36;
+    const reach = L1 + L2;
+    scale = Math.min(canvas.width, canvas.height) * 0.42 / reach;
+  }
+
+  // Map physics coordinates (metres, +y down from pivot) to canvas pixels.
+  function bobPositions(s) {
+    const x1 = cx + Math.sin(s.t1) * L1 * scale;
+    const y1 = cy + Math.cos(s.t1) * L1 * scale;
+    const x2 = x1 + Math.sin(s.t2) * L2 * scale;
+    const y2 = y1 + Math.cos(s.t2) * L2 * scale;
+    return { x1, y1, x2, y2 };
+  }
+
+  // ---- Equations of motion ------------------------------------------------
+  // Standard analytic angular accelerations for the double pendulum
+  // (derived from the Lagrangian). Given a state, return its derivative.
+  function derivatives(s) {
+    const { t1, t2, w1, w2 } = s;
+    const d = t1 - t2;
+    const sd = Math.sin(d), cd = Math.cos(d);
+    const den = 2 * M1 + M2 - M2 * Math.cos(2 * d);
+
+    const a1 = (
+      -G * (2 * M1 + M2) * Math.sin(t1)
+      - M2 * G * Math.sin(t1 - 2 * t2)
+      - 2 * sd * M2 * (w2 * w2 * L2 + w1 * w1 * L1 * cd)
+    ) / (L1 * den);
+
+    const a2 = (
+      2 * sd * (
+        w1 * w1 * L1 * (M1 + M2)
+        + G * (M1 + M2) * Math.cos(t1)
+        + w2 * w2 * L2 * M2 * cd
+      )
+    ) / (L2 * den);
+
+    return { t1: w1, t2: w2, w1: a1, w2: a2 };
+  }
+
+  // Fourth-order Runge–Kutta step — accurate enough that energy stays put
+  // and the chaos is the real thing, not integrator drift.
+  function step(s, dt) {
+    const add = (a, b, h) => ({
+      t1: a.t1 + b.t1 * h, t2: a.t2 + b.t2 * h,
+      w1: a.w1 + b.w1 * h, w2: a.w2 + b.w2 * h,
+    });
+    const k1 = derivatives(s);
+    const k2 = derivatives(add(s, k1, dt / 2));
+    const k3 = derivatives(add(s, k2, dt / 2));
+    const k4 = derivatives(add(s, k3, dt));
+    return {
+      t1: s.t1 + (dt / 6) * (k1.t1 + 2 * k2.t1 + 2 * k3.t1 + k4.t1),
+      t2: s.t2 + (dt / 6) * (k1.t2 + 2 * k2.t2 + 2 * k3.t2 + k4.t2),
+      w1: s.w1 + (dt / 6) * (k1.w1 + 2 * k2.w1 + 2 * k3.w1 + k4.w1),
+      w2: s.w2 + (dt / 6) * (k1.w2 + 2 * k2.w2 + 2 * k3.w2 + k4.w2),
+    };
+  }
+
+  // ---- Setup / reset ------------------------------------------------------
+  function reset(t1, t2) {
+    // Near-horizontal start with a tiny random nudge → immediate chaos.
+    state = {
+      t1: t1 !== undefined ? t1 : Math.PI / 2 + (Math.random() - 0.5) * 0.6,
+      t2: t2 !== undefined ? t2 : Math.PI / 2 + (Math.random() - 0.5) * 0.6,
+      w1: 0,
+      w2: 0,
+    };
+    trail.length = 0;
+  }
+
+  // ---- Rendering ----------------------------------------------------------
+  function drawTrail() {
+    if (!showTrail || trail.length < 2) return;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    for (let i = 1; i < trail.length; i++) {
+      const p0 = trail[i - 1], p1 = trail[i];
+      const a = i / trail.length;            // 0 = oldest, 1 = newest
+      ctx.beginPath();
+      ctx.moveTo(p0.x, p0.y);
+      ctx.lineTo(p1.x, p1.y);
+      ctx.strokeStyle = `hsla(${p1.hue}, 90%, 62%, ${a * a})`;
+      ctx.lineWidth = (0.6 + a * 2.2) * dpr;
+      ctx.stroke();
+    }
+    // Soft glow at the leading tip.
+    const tip = trail[trail.length - 1];
+    ctx.save();
+    ctx.globalCompositeOperation = "lighter";
+    const glow = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, 26 * dpr);
+    glow.addColorStop(0, `hsla(${tip.hue}, 95%, 68%, 0.55)`);
+    glow.addColorStop(1, `hsla(${tip.hue}, 95%, 68%, 0)`);
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(tip.x, tip.y, 26 * dpr, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.restore();
+  }
+
+  function drawPendulum(p) {
+    // Rods
+    ctx.lineCap = "round";
+    ctx.strokeStyle = "rgba(231, 236, 245, 0.85)";
+    ctx.lineWidth = 3 * dpr;
+    ctx.beginPath();
+    ctx.moveTo(cx, cy);
+    ctx.lineTo(p.x1, p.y1);
+    ctx.lineTo(p.x2, p.y2);
+    ctx.stroke();
+
+    // Pivot
+    ctx.fillStyle = "rgba(231, 236, 245, 0.9)";
+    ctx.beginPath();
+    ctx.arc(cx, cy, 4 * dpr, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Bobs
+    bob(p.x1, p.y1, 10 * dpr, "#cfd8e6");
+    bob(p.x2, p.y2, 12 * dpr, `hsl(${hue}, 90%, 65%)`);
+  }
+
+  function bob(x, y, r, color) {
+    const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
+    g.addColorStop(0, "rgba(255,255,255,0.95)");
+    g.addColorStop(0.25, color);
+    g.addColorStop(1, "rgba(0,0,0,0.35)");
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+  }
+
+  // ---- Main loop ----------------------------------------------------------
+  let paused = false;
+
+  function frame(now) {
+    requestAnimationFrame(frame);
+    if (!lastTime) lastTime = now;
+    let elapsed = (now - lastTime) / 1000;
+    lastTime = now;
+    if (elapsed > 0.25) elapsed = 0.25;   // avoid a huge jump after a tab switch
+
+    if (!paused) {
+      acc += elapsed;
+      while (acc >= DT) {
+        state = step(state, DT);
+        acc -= DT;
+      }
+      hue = (hue + elapsed * 24) % 360;
+
+      const p = bobPositions(state);
+      trail.push({ x: p.x2, y: p.y2, hue });
+      if (trail.length > MAX_TRAIL) trail.shift();
+    }
+
+    // Clear to the background gradient each frame; the trail array carries
+    // the persistence, so old paths fade by their own per-point alpha.
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    drawTrail();
+    drawPendulum(bobPositions(state));
+  }
+
+  // ---- Interaction --------------------------------------------------------
+  function pointToAngles(clientX, clientY) {
+    // Launch a fresh pendulum aimed at wherever the user clicked.
+    const dx = clientX * dpr - cx;
+    const dy = clientY * dpr - cy;
+    const t = Math.atan2(dx, dy);
+    reset(t, t + (Math.random() - 0.5) * 0.4);
+  }
+
+  canvas.addEventListener("pointerdown", (e) => {
+    pointToAngles(e.clientX, e.clientY);
+  });
+
+  const btnPause = document.getElementById("btn-pause");
+  const btnTrail = document.getElementById("btn-trail");
+
+  function togglePause() {
+    paused = !paused;
+    btnPause.textContent = paused ? "Play" : "Pause";
+  }
+
+  btnPause.addEventListener("click", togglePause);
+  document.getElementById("btn-reset").addEventListener("click", () => reset());
+  btnTrail.addEventListener("click", () => {
+    showTrail = !showTrail;
+    btnTrail.textContent = showTrail ? "Hide trail" : "Show trail";
+    if (!showTrail) trail.length = 0;
+  });
+
+  window.addEventListener("keydown", (e) => {
+    if (e.code === "Space") { e.preventDefault(); togglePause(); }
+    else if (e.key === "r" || e.key === "R") reset();
+  });
+
+  window.addEventListener("resize", () => {
+    const before = trail.length;
+    resize();
+    // Positions are scale-dependent, so clear a stale trail after a resize.
+    if (before) trail.length = 0;
+  });
+
+  // ---- Go -----------------------------------------------------------------
+  resize();
+  reset();
+  requestAnimationFrame(frame);
+})();
+</script>
+</body>
+</html>
