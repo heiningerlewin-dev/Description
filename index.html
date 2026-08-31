@@ -1,369 +1,473 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="de">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Double Pendulum</title>
-<style>
-  :root {
-    --bg-top: #0b0f1a;
-    --bg-bottom: #05070d;
-    --ink: #e7ecf5;
-    --muted: #8b97ad;
-    --accent: #4fd1ff;
-  }
-
-  * { box-sizing: border-box; }
-
-  html, body {
-    margin: 0;
-    height: 100%;
-    overflow: hidden;
-    background: radial-gradient(circle at 50% 20%, var(--bg-top), var(--bg-bottom) 70%);
-    color: var(--ink);
-    font-family: "Inter", "Segoe UI", system-ui, -apple-system, sans-serif;
-    -webkit-font-smoothing: antialiased;
-  }
-
-  #stage { position: fixed; inset: 0; display: block; }
-
-  .hud {
-    position: fixed;
-    top: 18px;
-    left: 18px;
-    z-index: 2;
-    user-select: none;
-    pointer-events: none;
-  }
-
-  .hud h1 {
-    margin: 0;
-    font-size: 15px;
-    font-weight: 600;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--ink);
-  }
-
-  .hud p {
-    margin: 4px 0 0;
-    font-size: 12px;
-    line-height: 1.5;
-    color: var(--muted);
-  }
-
-  .hud kbd {
-    display: inline-block;
-    padding: 1px 6px;
-    border: 1px solid rgba(255, 255, 255, 0.18);
-    border-bottom-width: 2px;
-    border-radius: 5px;
-    background: rgba(255, 255, 255, 0.05);
-    font: inherit;
-    font-size: 11px;
-    color: var(--ink);
-  }
-
-  .controls {
-    position: fixed;
-    bottom: 18px;
-    left: 18px;
-    z-index: 2;
-    display: flex;
-    gap: 10px;
-    flex-wrap: wrap;
-  }
-
-  .controls button {
-    appearance: none;
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-radius: 10px;
-    padding: 8px 14px;
-    background: rgba(255, 255, 255, 0.04);
-    color: var(--ink);
-    font: inherit;
-    font-size: 13px;
-    cursor: pointer;
-    transition: background 0.15s ease, border-color 0.15s ease, transform 0.05s ease;
-  }
-
-  .controls button:hover {
-    background: rgba(79, 209, 255, 0.14);
-    border-color: rgba(79, 209, 255, 0.5);
-  }
-
-  .controls button:active { transform: translateY(1px); }
-</style>
-</head>
-<body>
-  <canvas id="stage"></canvas>
-
-  <div class="hud">
-    <h1>Double Pendulum</h1>
-    <p>
-      Chaotic motion from gravity &middot; the lower bob paints a fading trail<br>
-      <kbd>Space</kbd> pause &middot; <kbd>R</kbd> reset &middot; click / drag to launch a new one
-    </p>
-  </div>
-
-  <div class="controls">
-    <button id="btn-pause" type="button">Pause</button>
-    <button id="btn-reset" type="button">Reset</button>
-    <button id="btn-trail" type="button">Hide trail</button>
-  </div>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
 
 <script>
-(() => {
-  "use strict";
-
-  const canvas = document.getElementById("stage");
-  const ctx = canvas.getContext("2d");
-
-  // ---- Physics parameters -------------------------------------------------
-  // A double pendulum: two rods pinned end-to-end, swinging under gravity.
-  const G  = 9.81;   // gravitational acceleration
-  const L1 = 1.0;    // length of upper rod
-  const L2 = 1.0;    // length of lower rod
-  const M1 = 1.0;    // mass of upper bob
-  const M2 = 1.0;    // mass of lower bob
-
-  // State: angles (from vertical) and angular velocities.
-  let state = { t1: 0, t2: 0, w1: 0, w2: 0 };
-
-  // Fixed-timestep accumulator keeps the simulation deterministic and stable
-  // regardless of the display frame rate.
-  const DT = 1 / 240;      // seconds per physics step
-  let acc = 0;
-  let lastTime = 0;
-
-  // ---- Trail --------------------------------------------------------------
-  const trail = [];            // recent world positions of the lower bob
-  const MAX_TRAIL = 1400;      // how many points we keep
-  let showTrail = true;
-  let hue = 0;                 // slowly rotating hue for the ribbon
-
-  // ---- View / layout ------------------------------------------------------
-  let dpr = 1, cx = 0, cy = 0, scale = 1;
-
-  function resize() {
-    dpr = Math.min(window.devicePixelRatio || 1, 2);
-    canvas.width  = Math.floor(window.innerWidth  * dpr);
-    canvas.height = Math.floor(window.innerHeight * dpr);
-    canvas.style.width  = window.innerWidth + "px";
-    canvas.style.height = window.innerHeight + "px";
-
-    // Pivot sits a little above centre; scale so the pendulum fits the view.
-    cx = canvas.width / 2;
-    cy = canvas.height * 0.36;
-    const reach = L1 + L2;
-    scale = Math.min(canvas.width, canvas.height) * 0.42 / reach;
-  }
-
-  // Map physics coordinates (metres, +y down from pivot) to canvas pixels.
-  function bobPositions(s) {
-    const x1 = cx + Math.sin(s.t1) * L1 * scale;
-    const y1 = cy + Math.cos(s.t1) * L1 * scale;
-    const x2 = x1 + Math.sin(s.t2) * L2 * scale;
-    const y2 = y1 + Math.cos(s.t2) * L2 * scale;
-    return { x1, y1, x2, y2 };
-  }
-
-  // ---- Equations of motion ------------------------------------------------
-  // Standard analytic angular accelerations for the double pendulum
-  // (derived from the Lagrangian). Given a state, return its derivative.
-  function derivatives(s) {
-    const { t1, t2, w1, w2 } = s;
-    const d = t1 - t2;
-    const sd = Math.sin(d), cd = Math.cos(d);
-    const den = 2 * M1 + M2 - M2 * Math.cos(2 * d);
-
-    const a1 = (
-      -G * (2 * M1 + M2) * Math.sin(t1)
-      - M2 * G * Math.sin(t1 - 2 * t2)
-      - 2 * sd * M2 * (w2 * w2 * L2 + w1 * w1 * L1 * cd)
-    ) / (L1 * den);
-
-    const a2 = (
-      2 * sd * (
-        w1 * w1 * L1 * (M1 + M2)
-        + G * (M1 + M2) * Math.cos(t1)
-        + w2 * w2 * L2 * M2 * cd
-      )
-    ) / (L2 * den);
-
-    return { t1: w1, t2: w2, w1: a1, w2: a2 };
-  }
-
-  // Fourth-order Runge–Kutta step — accurate enough that energy stays put
-  // and the chaos is the real thing, not integrator drift.
-  function step(s, dt) {
-    const add = (a, b, h) => ({
-      t1: a.t1 + b.t1 * h, t2: a.t2 + b.t2 * h,
-      w1: a.w1 + b.w1 * h, w2: a.w2 + b.w2 * h,
-    });
-    const k1 = derivatives(s);
-    const k2 = derivatives(add(s, k1, dt / 2));
-    const k3 = derivatives(add(s, k2, dt / 2));
-    const k4 = derivatives(add(s, k3, dt));
-    return {
-      t1: s.t1 + (dt / 6) * (k1.t1 + 2 * k2.t1 + 2 * k3.t1 + k4.t1),
-      t2: s.t2 + (dt / 6) * (k1.t2 + 2 * k2.t2 + 2 * k3.t2 + k4.t2),
-      w1: s.w1 + (dt / 6) * (k1.w1 + 2 * k2.w1 + 2 * k3.w1 + k4.w1),
-      w2: s.w2 + (dt / 6) * (k1.w2 + 2 * k2.w2 + 2 * k3.w2 + k4.w2),
-    };
-  }
-
-  // ---- Setup / reset ------------------------------------------------------
-  function reset(t1, t2) {
-    // Near-horizontal start with a tiny random nudge → immediate chaos.
-    state = {
-      t1: t1 !== undefined ? t1 : Math.PI / 2 + (Math.random() - 0.5) * 0.6,
-      t2: t2 !== undefined ? t2 : Math.PI / 2 + (Math.random() - 0.5) * 0.6,
-      w1: 0,
-      w2: 0,
-    };
-    trail.length = 0;
-  }
-
-  // ---- Rendering ----------------------------------------------------------
-  function drawTrail() {
-    if (!showTrail || trail.length < 2) return;
-    ctx.lineCap = "round";
-    ctx.lineJoin = "round";
-    for (let i = 1; i < trail.length; i++) {
-      const p0 = trail[i - 1], p1 = trail[i];
-      const a = i / trail.length;            // 0 = oldest, 1 = newest
-      ctx.beginPath();
-      ctx.moveTo(p0.x, p0.y);
-      ctx.lineTo(p1.x, p1.y);
-      ctx.strokeStyle = `hsla(${p1.hue}, 90%, 62%, ${a * a})`;
-      ctx.lineWidth = (0.6 + a * 2.2) * dpr;
-      ctx.stroke();
+/* Startthema vor dem ersten Anstrich setzen (verhindert FOUC). Siehe Bauplan V2. */
+(function () {
+  try {
+    var gespeichert = window.localStorage.getItem('rille.thema');
+    if (gespeichert === 'dark' || gespeichert === 'light') {
+      document.documentElement.setAttribute('data-theme', gespeichert);
     }
-    // Soft glow at the leading tip.
-    const tip = trail[trail.length - 1];
-    ctx.save();
-    ctx.globalCompositeOperation = "lighter";
-    const glow = ctx.createRadialGradient(tip.x, tip.y, 0, tip.x, tip.y, 26 * dpr);
-    glow.addColorStop(0, `hsla(${tip.hue}, 95%, 68%, 0.55)`);
-    glow.addColorStop(1, `hsla(${tip.hue}, 95%, 68%, 0)`);
-    ctx.fillStyle = glow;
-    ctx.beginPath();
-    ctx.arc(tip.x, tip.y, 26 * dpr, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.restore();
-  }
-
-  function drawPendulum(p) {
-    // Rods
-    ctx.lineCap = "round";
-    ctx.strokeStyle = "rgba(231, 236, 245, 0.85)";
-    ctx.lineWidth = 3 * dpr;
-    ctx.beginPath();
-    ctx.moveTo(cx, cy);
-    ctx.lineTo(p.x1, p.y1);
-    ctx.lineTo(p.x2, p.y2);
-    ctx.stroke();
-
-    // Pivot
-    ctx.fillStyle = "rgba(231, 236, 245, 0.9)";
-    ctx.beginPath();
-    ctx.arc(cx, cy, 4 * dpr, 0, Math.PI * 2);
-    ctx.fill();
-
-    // Bobs
-    bob(p.x1, p.y1, 10 * dpr, "#cfd8e6");
-    bob(p.x2, p.y2, 12 * dpr, `hsl(${hue}, 90%, 65%)`);
-  }
-
-  function bob(x, y, r, color) {
-    const g = ctx.createRadialGradient(x - r * 0.3, y - r * 0.3, r * 0.1, x, y, r);
-    g.addColorStop(0, "rgba(255,255,255,0.95)");
-    g.addColorStop(0.25, color);
-    g.addColorStop(1, "rgba(0,0,0,0.35)");
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(x, y, r, 0, Math.PI * 2);
-    ctx.fill();
-  }
-
-  // ---- Main loop ----------------------------------------------------------
-  let paused = false;
-
-  function frame(now) {
-    requestAnimationFrame(frame);
-    if (!lastTime) lastTime = now;
-    let elapsed = (now - lastTime) / 1000;
-    lastTime = now;
-    if (elapsed > 0.25) elapsed = 0.25;   // avoid a huge jump after a tab switch
-
-    if (!paused) {
-      acc += elapsed;
-      while (acc >= DT) {
-        state = step(state, DT);
-        acc -= DT;
-      }
-      hue = (hue + elapsed * 24) % 360;
-
-      const p = bobPositions(state);
-      trail.push({ x: p.x2, y: p.y2, hue });
-      if (trail.length > MAX_TRAIL) trail.shift();
-    }
-
-    // Clear to the background gradient each frame; the trail array carries
-    // the persistence, so old paths fade by their own per-point alpha.
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    drawTrail();
-    drawPendulum(bobPositions(state));
-  }
-
-  // ---- Interaction --------------------------------------------------------
-  function pointToAngles(clientX, clientY) {
-    // Launch a fresh pendulum aimed at wherever the user clicked.
-    const dx = clientX * dpr - cx;
-    const dy = clientY * dpr - cy;
-    const t = Math.atan2(dx, dy);
-    reset(t, t + (Math.random() - 0.5) * 0.4);
-  }
-
-  canvas.addEventListener("pointerdown", (e) => {
-    pointToAngles(e.clientX, e.clientY);
-  });
-
-  const btnPause = document.getElementById("btn-pause");
-  const btnTrail = document.getElementById("btn-trail");
-
-  function togglePause() {
-    paused = !paused;
-    btnPause.textContent = paused ? "Play" : "Pause";
-  }
-
-  btnPause.addEventListener("click", togglePause);
-  document.getElementById("btn-reset").addEventListener("click", () => reset());
-  btnTrail.addEventListener("click", () => {
-    showTrail = !showTrail;
-    btnTrail.textContent = showTrail ? "Hide trail" : "Show trail";
-    if (!showTrail) trail.length = 0;
-  });
-
-  window.addEventListener("keydown", (e) => {
-    if (e.code === "Space") { e.preventDefault(); togglePause(); }
-    else if (e.key === "r" || e.key === "R") reset();
-  });
-
-  window.addEventListener("resize", () => {
-    const before = trail.length;
-    resize();
-    // Positions are scale-dependent, so clear a stale trail after a resize.
-    if (before) trail.length = 0;
-  });
-
-  // ---- Go -----------------------------------------------------------------
-  resize();
-  reset();
-  requestAnimationFrame(frame);
+  } catch (fehler) { /* localStorage kann unter file:// werfen – dann gilt das Systemthema. */ }
 })();
 </script>
+
+<title>RILLE – Magazin für unabhängige Musik</title>
+<meta name="description" content="RILLE ist ein unabhängiges Online-Magazin für Musik abseits der Verwertungsketten: Rezensionen, Interviews, Porträts, Konzertberichte, Kolumnen und Entdeckungen – werbefrei und von Hand gesetzt.">
+<meta name="color-scheme" content="dark light">
+<meta name="theme-color" content="#101014" media="(prefers-color-scheme: dark)">
+<meta name="theme-color" content="#F5F1E8" media="(prefers-color-scheme: light)">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%23101014'/%3E%3Ccircle cx='16' cy='16' r='12.5' fill='none' stroke='%23F5F1E8' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='8' fill='none' stroke='%23F5F1E8' stroke-width='1.5'/%3E%3Ccircle cx='16' cy='16' r='3.5' fill='%23FF5A1F'/%3E%3C/svg%3E">
+<link rel="stylesheet" href="assets/css/style.css">
+<script src="assets/js/data.js" defer></script>
+<script src="assets/js/artwork.js" defer></script>
+<script src="assets/js/app.js" defer></script>
+</head>
+<body>
+
+<a class="sprungmarke" id="sprungmarke" href="#inhalt">Direkt zum Inhalt</a>
+
+<header class="kopfzeile" id="kopf">
+  <div class="kopfzeile__innen inhalt">
+
+    <h1 class="wortmarke">
+      RILLE<span class="wortmarke__punkt" aria-hidden="true"></span>
+      <span class="wortmarke__beizeile">Magazin für unabhängige Musik</span>
+    </h1>
+
+    <button class="menuknopf" id="menuknopf" type="button"
+            data-aktion="menu-umschalten"
+            aria-expanded="false" aria-controls="hauptnav">Menü</button>
+
+    <nav class="hauptnav" id="hauptnav" aria-label="Rubriken">
+      <ul class="hauptnav__liste">
+        <li class="hauptnav__eintrag">
+          <a class="hauptnav__link" href="#beitraege" data-rubrik="rezension">Rezension</a>
+        </li>
+        <li class="hauptnav__eintrag">
+          <a class="hauptnav__link" href="#beitraege" data-rubrik="interview">Interview</a>
+        </li>
+        <li class="hauptnav__eintrag">
+          <a class="hauptnav__link" href="#beitraege" data-rubrik="portraet">Porträt</a>
+        </li>
+        <li class="hauptnav__eintrag">
+          <a class="hauptnav__link" href="#beitraege" data-rubrik="live">Live</a>
+        </li>
+        <li class="hauptnav__eintrag">
+          <a class="hauptnav__link" href="#beitraege" data-rubrik="kolumne">Kolumne</a>
+        </li>
+        <li class="hauptnav__eintrag">
+          <a class="hauptnav__link" href="#beitraege" data-rubrik="entdeckung">Entdeckung</a>
+        </li>
+      </ul>
+
+      <form class="suche" id="suche" role="search" autocomplete="off">
+        <label class="suche__label" for="suchfeld">Beiträge durchsuchen</label>
+        <input class="suche__feld" id="suchfeld" name="suche" type="search"
+               placeholder="Titel, Tag, Autor:in" enterkeyhint="search"
+               aria-describedby="suchstatus">
+        <button class="suche__loeschen" id="suche-loeschen" type="button"
+                data-aktion="suche-loeschen" hidden>Suche löschen</button>
+      </form>
+    </nav>
+
+    <div class="kopfzeile__werkzeuge">
+      <button class="themenschalter" id="themenschalter" type="button"
+              data-aktion="thema-umschalten"
+              aria-label="Zu hellem Design wechseln">
+        <!-- LAUFZEIT: SVG aus RILLE_ARTWORK.symbol('thema', 20) -->
+      </button>
+      <a class="knopf knopf--primaer kopfzeile__abo" href="#abo">Abo</a>
+    </div>
+
+  </div>
+</header>
+
+<main id="inhalt" tabindex="-1">
+
+<noscript>
+  <p class="noscript-hinweis inhalt">
+    Für Rubrikfilter, Suche, Sortierung, Lesemodus, Künstlerblatt und das Abo-Formular braucht
+    diese Seite JavaScript. Ohne JavaScript bleiben Aufmacher, Artikelraster, Künstlerporträts
+    und Playlist leer – die Texte der Abo-Sektion und die Fußzeile stehen weiterhin bereit.
+  </p>
+</noscript>
+
+<section class="aufmacher" id="aufmacher" aria-labelledby="aufmacher-titel">
+  <!-- LAUFZEIT: app.js -> rendereAufmacher(): .aufmacher__text mit
+       p.rubrikmarke, h2#aufmacher-titel, .aufmacher__dachzeile, .aufmacher__lead,
+       .aufmacher__meta, Knopf [data-aktion="lesemodus-oeffnen"];
+       .aufmacher__artwork mit RILLE_ARTWORK.hero(); .aufmacher__marken -->
+</section>
+
+<section class="ressort" id="beitraege" aria-labelledby="beitraege-titel">
+  <div class="ressort__balken" aria-hidden="true"></div>
+  <div class="ressort__kopf inhalt">
+    <h2 class="ressort__titel" id="beitraege-titel">Aktuelle Beiträge</h2>
+    <p class="ressort__beizeile">Dreizehn Beiträge aus sechs Rubriken. Filtern, suchen, sortieren.</p>
+  </div>
+
+  <div class="filterleiste inhalt" id="filter">
+    <h3 class="sr-only">Nach Rubrik filtern</h3>
+    <ul class="filterleiste__liste" id="filterliste">
+      <!-- LAUFZEIT: app.js -> 1 Chip „Alle“ + 6 Rubrik-Chips (li.filterleiste__eintrag > button.filter-chip) -->
+    </ul>
+
+    <div class="filterleiste__werkzeuge">
+      <label class="filterleiste__sortlabel" for="sortierung">Sortierung</label>
+      <select class="filterleiste__sortierung" id="sortierung" data-aktion="sortieren">
+        <option value="datum-neu" selected>Neueste zuerst</option>
+        <option value="datum-alt">Älteste zuerst</option>
+        <option value="lesezeit-kurz">Kürzeste Lesezeit zuerst</option>
+        <option value="titel-az">Titel A–Z</option>
+      </select>
+      <p class="filterleiste__zaehler mono" id="ergebniszaehler">13 Beiträge</p>
+    </div>
+  </div>
+
+  <p class="suchstatus" id="suchstatus" role="status" aria-live="polite"></p>
+
+  <div class="artikelraster raster inhalt" id="artikelraster">
+    <!-- LAUFZEIT: app.js -> Artikelkarten (article.artikelkarte--gross | --mittel | --kompakt) -->
+  </div>
+
+  <p class="leerzustand" id="leerzustand" hidden>
+    <span class="leerzustand__titel">Nichts gefunden.</span>
+    <span class="leerzustand__text" id="leerzustand-text"><!-- LAUFZEIT: Erläuterung --></span>
+    <button class="knopf knopf--geist" type="button" data-aktion="filter-zuruecksetzen">
+      Filter zurücksetzen
+    </button>
+  </p>
+
+  <div class="nachladen inhalt">
+    <button class="knopf knopf--sekundaer" id="nachladen" type="button" data-aktion="mehr-laden">
+      Mehr laden
+    </button>
+  </div>
+</section>
+
+<section class="ressort" id="kuenstler" aria-labelledby="kuenstler-titel">
+  <div class="ressort__balken" aria-hidden="true"></div>
+  <div class="ressort__kopf inhalt">
+    <h2 class="ressort__titel" id="kuenstler-titel">Künstlerporträts</h2>
+    <p class="ressort__beizeile">Acht Namen, die wir im Blick behalten.</p>
+  </div>
+  <div class="kuenstlerraster raster inhalt" id="kuenstlerraster">
+    <!-- LAUFZEIT: app.js -> Künstlerkarten (article.kuenstlerkarte) -->
+  </div>
+</section>
+
+<section class="ressort" id="playlist" aria-labelledby="playlist-titel">
+  <div class="ressort__balken" aria-hidden="true"></div>
+  <div class="ressort__kopf inhalt">
+    <h2 class="ressort__titel" id="playlist-titel">Playlist der Redaktion</h2>
+    <p class="playlist__stand mono" id="playlist-stand"><!-- LAUFZEIT: Gesamtdauer und Stand --></p>
+  </div>
+  <ol class="playlist inhalt" id="playlistliste">
+    <!-- LAUFZEIT: app.js -> li.playlistzeile je Stück -->
+  </ol>
+  <p class="playlist__fussnote inhalt">
+    Hier wird nichts abgespielt. Die Liste ist eine Empfehlung, kein Player.
+  </p>
+</section>
+
+<section class="ressort ressort--abo" id="abo" aria-labelledby="abo-titel">
+  <div class="ressort__balken" aria-hidden="true"></div>
+  <div class="ressort__kopf inhalt">
+    <h2 class="ressort__titel" id="abo-titel">Abo</h2>
+    <p class="ressort__beizeile" id="abo-vorspann">Sechs Rubriken, ein Newsletter, kein Algorithmus.</p>
+  </div>
+
+  <div class="tarife raster inhalt" id="abo-tarife">
+    <!-- LAUFZEIT: app.js -> drei Tarifkarten aus RILLE_DATA.abo.tarife -->
+  </div>
+
+  <p class="abo-hinweis inhalt">
+    Geld ist ein schlechter Grund, nicht mitzulesen. Wer gerade knapp ist, schreibt uns eine Zeile –
+    aus dem Soli-Topf gibt es Freiabos, ohne Nachweis und ohne Nachfragen.
+  </p>
+
+  <div class="abo-block schmal" id="abo-block">
+
+    <p class="abo-entwurf" id="abo-entwurf" hidden>
+      <!-- LAUFZEIT: Hinweis auf wiederhergestellten Entwurf + Knopf [data-aktion="abo-entwurf-verwerfen"] -->
+    </p>
+
+    <form class="abo-formular" id="abo-formular" novalidate aria-describedby="abo-vorspann">
+
+      <div class="fehlerliste" id="abo-fehlerliste" tabindex="-1" hidden>
+        <!-- LAUFZEIT: h3 „Da fehlt noch etwas“, Zählsatz, ol mit Links [data-aktion="abo-fehler-springen"] -->
+      </div>
+
+      <p class="abo-pflichthinweis">Alle Felder sind Pflicht, außer den mit „(optional)“ gekennzeichneten.</p>
+
+      <fieldset class="abo-gruppe" id="abo-fs-person">
+        <legend>Wer bist du?</legend>
+
+        <div class="feld" data-feld="vorname">
+          <label for="abo-vorname">Vorname</label>
+          <input type="text" id="abo-vorname" name="vorname" required
+                 autocomplete="given-name" autocapitalize="words" spellcheck="false"
+                 maxlength="60">
+          <p class="feld-fehler" id="abo-vorname-fehler" hidden></p>
+        </div>
+
+        <div class="feld" data-feld="nachname">
+          <label for="abo-nachname">Nachname</label>
+          <input type="text" id="abo-nachname" name="nachname" required
+                 autocomplete="family-name" autocapitalize="words" spellcheck="false"
+                 maxlength="60">
+          <p class="feld-fehler" id="abo-nachname-fehler" hidden></p>
+        </div>
+
+        <div class="feld" data-feld="email">
+          <label for="abo-email">E-Mail-Adresse</label>
+          <input type="email" id="abo-email" name="email" required
+                 autocomplete="email" inputmode="email" placeholder="du@beispiel.de"
+                 maxlength="254" autocapitalize="none" autocorrect="off" spellcheck="false"
+                 aria-describedby="abo-email-hilfe">
+          <p class="feld-hilfe" id="abo-email-hilfe">Dorthin ginge der Newsletter. In dieser Demo verlässt die Adresse dein Gerät nicht.</p>
+          <p class="feld-notiz" id="abo-email-notiz" hidden>
+            <!-- LAUFZEIT: freundlicher Hinweis „schon angemeldet“ bzw. Tippfehler-Vorschlag
+                 mit Knopf [data-aktion="email-vorschlag-uebernehmen"] -->
+          </p>
+          <p class="feld-fehler" id="abo-email-fehler" hidden></p>
+        </div>
+      </fieldset>
+
+      <fieldset class="abo-gruppe tarife-auswahl" id="abo-fs-tarif" data-feld="tarif"
+                aria-describedby="abo-tarif-hilfe">
+        <legend>Welcher Tarif?</legend>
+        <p class="feld-hilfe" id="abo-tarif-hilfe">Du kannst jederzeit wechseln oder kündigen, formlos per Mail.</p>
+        <p class="feld-fehler" id="abo-tarif-fehler" hidden></p>
+        <div class="tarife-auswahl__liste" id="abo-tarif-liste">
+          <!-- LAUFZEIT: app.js -> drei .tarif-karte mit input[type=radio][name=tarif]
+               id="abo-tarif-digital" | "abo-tarif-print" | "abo-tarif-soli" -->
+        </div>
+      </fieldset>
+
+      <fieldset class="abo-gruppe" id="abo-fs-intervall" data-feld="intervall">
+        <legend>Wie oft soll der Newsletter kommen?</legend>
+        <p class="feld-fehler" id="abo-intervall-fehler" hidden></p>
+        <div class="wahlliste" id="abo-intervall-liste">
+          <!-- LAUFZEIT: app.js -> zwei input[type=radio][name=intervall]
+               id="abo-intervall-woechentlich" | "abo-intervall-monatlich" (monatlich vorausgewählt) -->
+        </div>
+      </fieldset>
+
+      <fieldset class="abo-gruppe" id="abo-fs-interessen" data-feld="interessen"
+                aria-describedby="abo-interessen-hilfe">
+        <legend>Was interessiert dich?</legend>
+        <p class="feld-hilfe" id="abo-interessen-hilfe">Mindestens eine Rubrik. Mehr geht auch – der Newsletter richtet sich danach.</p>
+        <p class="feld-fehler" id="abo-interessen-fehler" hidden></p>
+        <div class="wahlliste wahlliste--zweispaltig" id="abo-interessen-liste">
+          <!-- LAUFZEIT: app.js -> sechs input[type=checkbox][name=interessen]
+               id="abo-interesse-<rubrikId>" aus RILLE_DATA.rubriken -->
+        </div>
+      </fieldset>
+
+      <fieldset class="abo-gruppe" id="abo-adresse" data-feld="adresse"
+                aria-describedby="abo-adresse-hilfe" hidden disabled>
+        <legend>Wohin soll das Heft?</legend>
+        <p class="feld-hilfe" id="abo-adresse-hilfe">Brauchen wir nur, damit das gedruckte Heft ankommt.</p>
+
+        <div class="feld" data-feld="strasse">
+          <label for="abo-strasse">Straße und Hausnummer</label>
+          <input type="text" id="abo-strasse" name="strasse"
+                 autocomplete="address-line1" autocapitalize="words" maxlength="80"
+                 placeholder="Bahnhofstraße 4">
+          <p class="feld-fehler" id="abo-strasse-fehler" hidden></p>
+        </div>
+
+        <div class="feld" data-feld="plz">
+          <label for="abo-plz">Postleitzahl</label>
+          <input type="text" id="abo-plz" name="plz"
+                 autocomplete="postal-code" inputmode="numeric" spellcheck="false"
+                 maxlength="5" placeholder="44137"
+                 aria-describedby="abo-plz-hilfe">
+          <p class="feld-hilfe" id="abo-plz-hilfe">Fünf Ziffern.</p>
+          <p class="feld-fehler" id="abo-plz-fehler" hidden></p>
+        </div>
+
+        <div class="feld" data-feld="ort">
+          <label for="abo-ort">Ort</label>
+          <input type="text" id="abo-ort" name="ort"
+                 autocomplete="address-level2" autocapitalize="words" maxlength="60">
+          <p class="feld-fehler" id="abo-ort-fehler" hidden></p>
+        </div>
+
+        <div class="feld" data-feld="land">
+          <label for="abo-land">Land</label>
+          <select id="abo-land" name="land" autocomplete="country-name">
+            <option value="DE" selected>Deutschland</option>
+            <option value="AT">Österreich</option>
+            <option value="CH">Schweiz</option>
+            <option value="EU">Übriges Europa</option>
+          </select>
+          <p class="feld-fehler" id="abo-land-fehler" hidden></p>
+        </div>
+      </fieldset>
+
+      <fieldset class="abo-gruppe" id="abo-fs-schluss">
+        <legend>Zum Schluss</legend>
+
+        <div class="feld" data-feld="kommentar">
+          <label for="abo-kommentar">Willst du uns etwas mitgeben? (optional)</label>
+          <textarea id="abo-kommentar" name="kommentar" rows="4" maxlength="300"
+                    spellcheck="true" autocomplete="off"
+                    aria-describedby="abo-kommentar-hilfe"></textarea>
+          <p class="feld-hilfe" id="abo-kommentar-hilfe">Höchstens 300 Zeichen. Plattentipps landen wirklich in der Redaktionskonferenz.</p>
+          <p class="feld-zaehler mono" id="abo-kommentar-zaehler" aria-hidden="true">Noch 300 Zeichen</p>
+          <p class="feld-fehler" id="abo-kommentar-fehler" hidden></p>
+        </div>
+
+        <div class="feld feld--kontrolle" data-feld="einwilligung">
+          <label class="feld__kontrolle" for="abo-einwilligung">
+            <input type="checkbox" id="abo-einwilligung" name="einwilligung" value="ja" required>
+            <span class="feld__kontrolltext">Ja, schickt mir den Newsletter an die angegebene Adresse. Ich kann das jederzeit mit einem Klick beenden.</span>
+          </label>
+          <p class="feld-fehler" id="abo-einwilligung-fehler" hidden></p>
+        </div>
+      </fieldset>
+
+      <div class="hp" aria-hidden="true">
+        <label for="abo-webseite">Webseite (bitte frei lassen)</label>
+        <input type="text" id="abo-webseite" name="webseite" tabindex="-1" autocomplete="off">
+      </div>
+
+      <button class="knopf knopf--primaer" id="abo-absenden" type="submit">Abo anlegen</button>
+    </form>
+
+    <div class="abo-quittung-ziel" id="abo-quittung-ziel">
+      <!-- LAUFZEIT: Erfolgs-, Aktualisiert- oder „bereits angemeldet“-Karte
+           mit h3[tabindex="-1"], dl.abo-quittung und den Knöpfen
+           [data-aktion="abo-aendern" | "abo-loeschen" | "abo-aktualisieren" | "abo-andere-adresse"] -->
+    </div>
+
+    <div class="datenschutz" id="abo-datenschutz">
+      <h3>Was mit deinen Angaben passiert</h3>
+      <p>
+        Nichts verlässt dieses Gerät. RILLE ist hier eine statische Demo: Es gibt keinen Server,
+        der etwas entgegennehmen könnte, keine Anfrage ins Netz, keine Analyse, keine Cookies
+        von Dritten.
+      </p>
+      <p>
+        Was du einträgst, speichert dein Browser lokal unter dem Schlüssel
+        <code class="mono">rille.abo.v1</code> – damit die Seite dich beim nächsten Besuch
+        wiedererkennt. Ein zweiter Schlüssel, <code class="mono">rille.abo.entwurf.v1</code>,
+        hält ein halb ausgefülltes Formular fest, falls du versehentlich neu lädst.
+      </p>
+      <p>
+        Beides kannst du jederzeit selbst löschen: mit „Eintrag löschen“ in der Bestätigung, mit
+        dem Knopf unten oder indem du die Website-Daten deines Browsers leerst. Wir sehen davon
+        ohnehin nichts – auch keine E-Mail-Adresse, denn verschickt wird hier nichts.
+      </p>
+      <button class="knopf knopf--geist" id="abo-alles-loeschen" type="button"
+              data-aktion="abo-alles-loeschen" hidden>
+        Alle lokal gespeicherten Abo-Daten löschen
+      </button>
+    </div>
+
+    <p class="sr-only" id="abo-status" role="status" aria-live="polite"></p>
+  </div>
+</section>
+
+</main>
+
+<footer class="fusszeile" id="fuss" aria-labelledby="fuss-titel">
+  <h2 class="sr-only" id="fuss-titel">Fußzeile</h2>
+  <div class="fusszeile__innen inhalt raster">
+    <nav class="fussgruppe" aria-label="Rubriken">
+      <h3 class="fussgruppe__kopf">Rubriken</h3>
+      <ul class="fussgruppe__liste">
+        <li><a class="fussgruppe__link" href="#beitraege" data-rubrik="rezension">Rezension</a></li>
+        <li><a class="fussgruppe__link" href="#beitraege" data-rubrik="interview">Interview</a></li>
+        <li><a class="fussgruppe__link" href="#beitraege" data-rubrik="portraet">Porträt</a></li>
+        <li><a class="fussgruppe__link" href="#beitraege" data-rubrik="live">Live</a></li>
+        <li><a class="fussgruppe__link" href="#beitraege" data-rubrik="kolumne">Kolumne</a></li>
+        <li><a class="fussgruppe__link" href="#beitraege" data-rubrik="entdeckung">Entdeckung</a></li>
+      </ul>
+    </nav>
+    <nav class="fussgruppe" aria-label="Magazin">
+      <h3 class="fussgruppe__kopf">Magazin</h3>
+      <ul class="fussgruppe__liste">
+        <li><a class="fussgruppe__link" href="#playlist">Playlist der Redaktion</a></li>
+        <li><a class="fussgruppe__link" href="#kuenstler">Künstlerporträts</a></li>
+        <li><a class="fussgruppe__link" href="#abo">Abo</a></li>
+        <li><a class="fussgruppe__link" href="#kopf">Zum Seitenanfang</a></li>
+      </ul>
+    </nav>
+    <div class="fussgruppe">
+      <h3 class="fussgruppe__kopf">Rechtliches</h3>
+      <ul class="fussgruppe__liste">
+        <li><span class="fussgruppe__eintrag">Impressum</span></li>
+        <li><span class="fussgruppe__eintrag">Datenschutz</span></li>
+        <li><span class="fussgruppe__eintrag">Barrierefreiheit</span></li>
+      </ul>
+    </div>
+    <div class="fussgruppe">
+      <h3 class="fussgruppe__kopf">Kontakt</h3>
+      <ul class="fussgruppe__liste">
+        <li><span class="fussgruppe__eintrag">Redaktion RILLE</span></li>
+        <li><span class="fussgruppe__eintrag">Postfach 14, 44787 Bochum</span></li>
+        <li><span class="fussgruppe__eintrag">post ät rille-magazin.de</span></li>
+      </ul>
+    </div>
+  </div>
+  <p class="fusszeile__marke" aria-hidden="true">RILLE</p>
+  <p class="fusszeile__kolophon mono inhalt">
+    Impressum · <span id="fuss-jahr">2026</span> · Unabhängig, werbefrei, von Hand gesetzt
+  </p>
+</footer>
+
+<div class="overlay" id="lesemodus" role="dialog" aria-modal="true"
+     aria-labelledby="lesemodus-titel" hidden>
+  <div class="overlay__verdunkler" data-aktion="overlay-schliessen"></div>
+  <div class="overlay__panel lesemodus__panel" data-schriftgroesse="m">
+
+    <div class="lesemodus__leiste">
+      <p class="rubrikmarke" id="lesemodus-rubrik" data-rubrik=""></p>
+      <div class="lesemodus__fortschritt" aria-hidden="true">
+        <div class="lesemodus__balken" id="lesemodus-balken"></div>
+      </div>
+      <div class="lesemodus__groesse" role="group" aria-label="Schriftgröße">
+        <button type="button" data-aktion="schriftgroesse" data-groesse="s" aria-pressed="false">S</button>
+        <button type="button" data-aktion="schriftgroesse" data-groesse="m" aria-pressed="true">M</button>
+        <button type="button" data-aktion="schriftgroesse" data-groesse="l" aria-pressed="false">L</button>
+      </div>
+      <button class="overlay__schliessen" type="button" data-aktion="overlay-schliessen">
+        Schließen
+      </button>
+    </div>
+
+    <article class="lesemodus__inhalt" id="lesemodus-inhalt" tabindex="-1">
+      <!-- LAUFZEIT: .lesemodus__dachzeile, h2.lesemodus__titel#lesemodus-titel,
+           .lesemodus__meta, .lesemodus__text mit .lesemodus__absatz und blockquote.pullquote,
+           ul.taglist -->
+    </article>
+  </div>
+</div>
+
+<div class="overlay" id="kuenstlerblatt" role="dialog" aria-modal="true"
+     aria-labelledby="kuenstlerblatt-titel" hidden>
+  <div class="overlay__verdunkler" data-aktion="overlay-schliessen"></div>
+  <div class="overlay__panel kuenstlerblatt__panel">
+    <button class="overlay__schliessen" type="button" data-aktion="overlay-schliessen">
+      Schließen
+    </button>
+    <div class="kuenstlerblatt__inhalt" id="kuenstlerblatt-inhalt" tabindex="-1">
+      <!-- LAUFZEIT: .kuenstlerblatt__kopf mit h2#kuenstlerblatt-titel und dl.steckbrief,
+           .kuenstlerblatt__satz mit .kuenstlerblatt__text und aside.marginalie,
+           .kuenstlerblatt__bezuege, Knopf .kuenstlerblatt__zurueck -->
+    </div>
+  </div>
+</div>
+
+<p class="sr-only" id="seiten-status" role="status" aria-live="polite"></p>
+
 </body>
 </html>

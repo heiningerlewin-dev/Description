@@ -1,0 +1,3016 @@
+@charset "utf-8";
+
+/* ============================================================
+   RILLE - Magazin fuer unabhaengige Musik
+   style.css - einziges Stylesheet, keine Abhaengigkeiten,
+   keine Netzanfragen, keine Webfonts. Laeuft ueber file://.
+
+   Gliederung (Bauplan 6.3):
+     01 TOKENS UND THEMES
+     02 GRUNDLAGEN
+     03 TYPOGRAFIE
+     04 LAYOUT UND RASTER
+     05 SPRUNGMARKE UND KOPFZEILE
+     06 KNOEPFE UND CHIPS
+     07 AUFMACHER
+     08 RESSORT UND FILTERLEISTE
+     09 ARTIKELKARTEN
+     10 KUENSTLERKARTEN
+     11 PLAYLIST
+     12 ABO
+     13 FUSSZEILE
+     14 OVERLAYS
+     15 ARTWORK
+     16 BEWEGUNG UND REDUZIERTE BEWEGUNG
+   ============================================================ */
+
+
+/* ============================================================
+   01 · TOKENS UND THEMES
+   ============================================================ */
+
+/* Dark ist der Standard und steht vollstaendig auf :root.
+   Die Light-Werte stehen zweimal (Medienblock fuer den Startwert ohne
+   gespeicherte Wahl, Attributblock fuer den Umschalter). Das ist der
+   einzige zulaessige Duplikatblock - Bauplan 6.2. */
+
+:root {
+  color-scheme: dark;
+
+  /* --- Flaechen --- */
+  --flaeche-basis:            #101014;
+  --flaeche-erhoben:          #17171C;
+  --flaeche-vertieft:         #0A0A0D;
+  --flaeche-invers:           #F5F1E8;
+  --flaeche-akzent-a-leise:   #2E1A12;
+  --flaeche-akzent-b-leise:   #161E33;
+
+  /* --- Schriftfarben --- */
+  --farbe-text:               #F5F1E8;
+  --farbe-text-leise:         #ABA69B;
+  --farbe-text-invers:        #101014;
+
+  /* --- Linienfarben --- */
+  --linie-stark:              #F5F1E8;
+  --linie-ui:                 #686874;
+  --linie-leise:              #2A2A31;
+
+  /* --- Akzente --- */
+  --akzent-a:                 #FF5A1F;
+  --akzent-a-flaeche:         #FF5A1F;
+  --akzent-a-auf:             #101014;
+  --akzent-b:                 #6E96FF;
+  --akzent-b-flaeche:         #6E96FF;
+  --akzent-b-auf:             #101014;
+  --akzent-fokus:             #FFD166;
+
+  /* --- Zustaende (ENTSCHEIDUNG 0.3) --- */
+  --fehler:                   #FF8080;
+  --fehler-flaeche:           #2A1416;
+  --erfolg:                   #7BD88F;
+  --erfolg-flaeche:           #12241A;
+
+  /* --- Artwork-Inks --- */
+  --artwork-papier:           #17171C;
+  --artwork-ink-a:            #FF5A1F;
+  --artwork-ink-b:            #2F6BFF;
+  --artwork-ueberdruck:       #FFA0FF;
+  --artwork-marken:           #686874;
+
+  /* --- Schriftstapel (systemsicher, keine Webfonts) --- */
+  --schrift-display:
+    "Hoefler Text", "Iowan Old Style", "Charter", "Bitstream Charter",
+    Constantia, "Palatino Linotype", Palatino, "Book Antiqua",
+    P052, "URW Palladio L", "Liberation Serif", Georgia,
+    "Times New Roman", ui-serif, serif;
+  --schrift-text:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    "Liberation Sans", "Noto Sans", "DejaVu Sans", Arial, sans-serif;
+  --schrift-meta:
+    ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas,
+    "Liberation Mono", "DejaVu Sans Mono", "Courier New", monospace;
+
+  /* --- Type-Scale, sieben Stufen (AD 3.2) --- */
+  --schrift-xxl:   clamp(2.875rem, 1.55rem + 5.75vw, 6.5rem);
+  --schrift-xl:    clamp(2rem, 1.25rem + 3.4vw, 3.875rem);
+  --schrift-l:     clamp(1.5rem, 1.05rem + 1.9vw, 2.375rem);
+  --schrift-m:     clamp(1.25rem, 1.05rem + 0.85vw, 1.625rem);
+  --schrift-basis: clamp(1.0625rem, 1rem + 0.22vw, 1.1875rem);
+  --schrift-s:     clamp(0.9375rem, 0.9rem + 0.1vw, 1rem);
+  --schrift-xs:    clamp(0.8125rem, 0.78rem + 0.07vw, 0.875rem);
+
+  /* --- Abstandsskala, 4er-Basis (AD 4.4) --- */
+  --raum-3xs:   4px;
+  --raum-2xs:   8px;
+  --raum-xs:   12px;
+  --raum-s:    16px;
+  --raum-m:    24px;
+  --raum-l:    32px;
+  --raum-xl:   48px;
+  --raum-2xl:  64px;
+  --raum-3xl:  96px;
+  --raum-4xl: 128px;
+  --raum-5xl: 192px;
+
+  /* Startwerte; die Stufen stehen bei den Breakpoints in Abschnitt 04. */
+  --gasse: var(--raum-s);
+  --rand:  20px;
+
+  /* --- Containerbreiten (AD 4.2) --- */
+  --breite-schmal:  720px;
+  --breite-inhalt: 1160px;
+  --breite-weit:   1440px;
+  --breite-rand:   1600px;
+
+  /* --- Regellinien-Staerken (AD 4.5) --- */
+  --linie-haar:    1px;
+  --linie-fein:    2px;
+  --linie-mittel:  3px;
+  --linie-fett:    6px;
+  --linie-block:  12px;
+  --radius:        2px;
+
+  /* --- Bewegung (AD 6.1) --- */
+  --dauer-mikro:  120ms;
+  --dauer-kurz:   180ms;
+  --dauer-mittel: 260ms;
+  --dauer-lang:   420ms;
+  --kurve-standard: cubic-bezier(.2, .7, .3, 1);
+  --kurve-rein:     cubic-bezier(0, 0, .2, 1);
+  --kurve-raus:     cubic-bezier(.4, 0, 1, 1);
+}
+
+/* Startwert ohne gespeicherte Wahl: das Systemthema. */
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+
+    --flaeche-basis:          #F5F1E8;
+    --flaeche-erhoben:        #FFFDF6;
+    --flaeche-vertieft:       #E9E4D6;
+    --flaeche-invers:         #141418;
+    --flaeche-akzent-a-leise: #F7E3D8;
+    --flaeche-akzent-b-leise: #E2E6F7;
+
+    --farbe-text:             #141418;
+    --farbe-text-leise:       #56534C;
+    --farbe-text-invers:      #F5F1E8;
+
+    --linie-stark:            #141418;
+    --linie-ui:               #6F6B62;
+    --linie-leise:            #D2CCBD;
+
+    --akzent-a:               #BE2F08;
+    --akzent-a-flaeche:       #BE2F08;
+    --akzent-a-auf:           #F5F1E8;
+    --akzent-b:               #1E3FC4;
+    --akzent-b-flaeche:       #1E3FC4;
+    --akzent-b-auf:           #F5F1E8;
+    --akzent-fokus:           #1E3FC4;
+
+    --fehler:                 #A8102A;
+    --fehler-flaeche:         #FBE4E4;
+    --erfolg:                 #1F6B36;
+    --erfolg-flaeche:         #E4EFE2;
+
+    --artwork-papier:         #F5F1E8;
+    --artwork-ink-a:          #D93A0C;
+    --artwork-ink-b:          #1E3FC4;
+    --artwork-ueberdruck:     #190E09;
+    --artwork-marken:         #6F6B62;
+  }
+}
+
+/* Die ausdrueckliche Wahl gewinnt immer - in beide Richtungen. */
+:root[data-theme="light"] {
+  color-scheme: light;
+
+  --flaeche-basis:          #F5F1E8;
+  --flaeche-erhoben:        #FFFDF6;
+  --flaeche-vertieft:       #E9E4D6;
+  --flaeche-invers:         #141418;
+  --flaeche-akzent-a-leise: #F7E3D8;
+  --flaeche-akzent-b-leise: #E2E6F7;
+
+  --farbe-text:             #141418;
+  --farbe-text-leise:       #56534C;
+  --farbe-text-invers:      #F5F1E8;
+
+  --linie-stark:            #141418;
+  --linie-ui:               #6F6B62;
+  --linie-leise:            #D2CCBD;
+
+  --akzent-a:               #BE2F08;
+  --akzent-a-flaeche:       #BE2F08;
+  --akzent-a-auf:           #F5F1E8;
+  --akzent-b:               #1E3FC4;
+  --akzent-b-flaeche:       #1E3FC4;
+  --akzent-b-auf:           #F5F1E8;
+  --akzent-fokus:           #1E3FC4;
+
+  --fehler:                 #A8102A;
+  --fehler-flaeche:         #FBE4E4;
+  --erfolg:                 #1F6B36;
+  --erfolg-flaeche:         #E4EFE2;
+
+  --artwork-papier:         #F5F1E8;
+  --artwork-ink-a:          #D93A0C;
+  --artwork-ink-b:          #1E3FC4;
+  --artwork-ueberdruck:     #190E09;
+  --artwork-marken:         #6F6B62;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --flaeche-basis:          #101014;
+  --flaeche-erhoben:        #17171C;
+  --flaeche-vertieft:       #0A0A0D;
+  --flaeche-invers:         #F5F1E8;
+  --flaeche-akzent-a-leise: #2E1A12;
+  --flaeche-akzent-b-leise: #161E33;
+
+  --farbe-text:             #F5F1E8;
+  --farbe-text-leise:       #ABA69B;
+  --farbe-text-invers:      #101014;
+
+  --linie-stark:            #F5F1E8;
+  --linie-ui:               #686874;
+  --linie-leise:            #2A2A31;
+
+  --akzent-a:               #FF5A1F;
+  --akzent-a-flaeche:       #FF5A1F;
+  --akzent-a-auf:           #101014;
+  --akzent-b:               #6E96FF;
+  --akzent-b-flaeche:       #6E96FF;
+  --akzent-b-auf:           #101014;
+  --akzent-fokus:           #FFD166;
+
+  --fehler:                 #FF8080;
+  --fehler-flaeche:         #2A1416;
+  --erfolg:                 #7BD88F;
+  --erfolg-flaeche:         #12241A;
+
+  --artwork-papier:         #17171C;
+  --artwork-ink-a:          #FF5A1F;
+  --artwork-ink-b:          #2F6BFF;
+  --artwork-ueberdruck:     #FFA0FF;
+  --artwork-marken:         #686874;
+}
+
+/* Rubrikfarbe als ortsgebundener Alias. Fuehrt keine neuen Farbwerte ein,
+   sondern zeigt je Rubrik auf einen der beiden bereits definierten Akzente
+   (AD 7.5: Rezension, Live, Entdeckung fuehren mit Ink A; Interview,
+   Portraet, Kolumne mit Ink B). Erspart sechs fast gleiche Regelbloecke
+   je Bauteil. */
+[data-rubrik] {
+  --akzent-rubrik:         var(--akzent-a);
+  --akzent-rubrik-flaeche: var(--akzent-a-flaeche);
+  --akzent-rubrik-auf:     var(--akzent-a-auf);
+}
+[data-rubrik="interview"],
+[data-rubrik="portraet"],
+[data-rubrik="kolumne"] {
+  --akzent-rubrik:         var(--akzent-b);
+  --akzent-rubrik-flaeche: var(--akzent-b-flaeche);
+  --akzent-rubrik-auf:     var(--akzent-b-auf);
+}
+/* „Alle“ und der noch leere Wert im Lesemodus bleiben neutral. */
+[data-rubrik=""],
+[data-rubrik="alle"] {
+  --akzent-rubrik:         var(--farbe-text);
+  --akzent-rubrik-flaeche: var(--flaeche-invers);
+  --akzent-rubrik-auf:     var(--farbe-text-invers);
+}
+
+
+/* ============================================================
+   02 · GRUNDLAGEN
+   ============================================================ */
+
+*,
+*::before,
+*::after { box-sizing: border-box; }
+
+html {
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+  scroll-behavior: smooth;
+  scrollbar-gutter: stable;
+}
+
+body {
+  margin: 0;
+  background: var(--flaeche-basis);
+  color: var(--farbe-text);
+  font-family: var(--schrift-text);
+  font-size: var(--schrift-basis);
+  line-height: 1.62;
+  font-synthesis-weight: none;
+  /* clip statt hidden: hidden wuerde aus dem body einen Scrollcontainer
+     machen und die klebende Kopfzeile aushebeln. */
+  overflow-x: clip;
+}
+
+/* Scrollsperre bei offenem Overlay (Bauplan V23). */
+.body--fixiert {
+  overflow: hidden;
+  scrollbar-gutter: stable;
+}
+
+h1, h2, h3, h4,
+p, figure, blockquote, dl, dd, ol, ul, fieldset, legend { margin: 0; }
+
+ul, ol { padding: 0; list-style: none; }
+
+img, svg, video { display: block; max-width: 100%; }
+svg { height: auto; }
+
+a { color: inherit; }
+
+button, input, select, textarea {
+  font: inherit;
+  color: inherit;
+  letter-spacing: inherit;
+  margin: 0;
+}
+
+button {
+  background: none;
+  border: 0;
+  padding: 0;
+  cursor: pointer;
+  text-align: inherit;
+  color: inherit;
+}
+
+button[disabled],
+button[aria-disabled="true"] { cursor: not-allowed; }
+
+fieldset { border: 0; padding: 0; min-width: 0; }
+
+textarea { resize: vertical; }
+
+table { border-collapse: collapse; }
+
+[hidden] { display: none; }
+
+hr {
+  border: 0;
+  border-block-start: var(--linie-haar) solid var(--linie-leise);
+  margin: var(--raum-m) 0;
+}
+
+::selection {
+  background: var(--akzent-a-flaeche);
+  color: var(--akzent-a-auf);
+}
+
+::placeholder {
+  color: var(--farbe-text-leise);
+  opacity: 1;
+}
+
+/* Fokus, einheitlich und nicht verhandelbar (AD 2.5).
+   Der box-shadow fuellt den 2-px-Spalt, damit der Ring auch auf einer
+   Zinnoberflaeche gegen die Grundflaeche gemessen wird. */
+:where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--akzent-fokus);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 2px var(--flaeche-basis);
+  border-radius: var(--radius);
+}
+
+/* Programmatisch fokussierte Container (main, Overlay-Inhalte,
+   Fehlerliste) sollen keinen Ring zeigen - sie sind kein Bedienelement. */
+[tabindex="-1"]:focus { outline: none; }
+[tabindex="-1"]:focus-visible {
+  outline: 3px solid var(--akzent-fokus);
+  outline-offset: 2px;
+}
+
+/* --- Die genau sechs erlaubten Utility-Klassen (Bauplan 6.5) --- */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Botfalle: niemals display:none, sonst fuellen Browser sie automatisch
+   nicht aus und manche Bots erkennen sie (AF 2.7 / Bauplan V45). */
+.hp {
+  position: absolute;
+  left: -9999px;
+  top: auto;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+}
+
+.inhalt {
+  inline-size: 100%;
+  max-inline-size: var(--breite-inhalt);
+  margin-inline: auto;
+  padding-inline: var(--rand);
+}
+
+.schmal {
+  inline-size: 100%;
+  max-inline-size: var(--breite-schmal);
+  margin-inline: auto;
+  padding-inline: var(--rand);
+}
+
+.raster {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--gasse);
+}
+
+.mono {
+  font-family: var(--schrift-meta);
+  font-variant-numeric: tabular-nums;
+}
+
+
+/* ============================================================
+   03 · TYPOGRAFIE
+   ============================================================ */
+
+h1, h2, h3, h4 {
+  font-family: var(--schrift-display);
+  font-weight: 600;
+  text-wrap: balance;
+  hyphens: manual;
+  /* Deutsche Komposita sprengen sonst bei 360 px die Spalte. */
+  overflow-wrap: break-word;
+}
+
+h2 {
+  font-size: var(--schrift-xl);
+  line-height: 0.98;
+  letter-spacing: -0.022em;
+  font-weight: 700;
+}
+
+h3 {
+  font-size: var(--schrift-m);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+
+h4 {
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  letter-spacing: 0.005em;
+}
+
+p { text-wrap: pretty; }
+
+strong, b { font-weight: 700; }
+
+em, i, cite { font-style: italic; }
+
+code, kbd, samp {
+  font-family: var(--schrift-meta);
+  font-size: 0.92em;
+}
+
+small { font-size: var(--schrift-s); }
+
+blockquote { quotes: "\00BB" "\00AB" "\203A" "\2039"; }
+
+mark {
+  background: none;
+  color: inherit;
+}
+
+legend {
+  font-family: var(--schrift-display);
+  font-size: var(--schrift-m);
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  padding: 0;
+}
+
+label { display: block; }
+
+/* Deutsche Komposita brechen in schmalen Spalten sonst ueber den Rand. */
+@media (max-width: 639px) {
+  p { hyphens: auto; }
+}
+
+/* Suchtreffer: nie allein ueber Farbe - Flaeche plus Unterstreichung. */
+.treffer {
+  background: var(--flaeche-akzent-a-leise);
+  color: var(--akzent-a);
+  text-decoration: underline;
+  text-decoration-thickness: var(--linie-fein);
+  text-underline-offset: 2px;
+  padding-inline: 1px;
+}
+
+
+/* ============================================================
+   04 · LAYOUT UND RASTER
+   ============================================================ */
+
+/* Seitenrand und Gasse wachsen in den fuenf Stufen aus AD 4.1/4.3.
+   Alles andere am Raster bleibt gleich: zwoelf Spalten, immer. */
+@media (min-width: 640px) {
+  :root { --gasse: 20px; --rand: 28px; }
+}
+@media (min-width: 900px) {
+  :root { --gasse: var(--raum-m); --rand: 40px; }
+}
+@media (min-width: 1200px) {
+  :root { --gasse: 28px; --rand: 56px; }
+}
+@media (min-width: 1440px) {
+  :root { --gasse: var(--raum-l); --rand: 72px; }
+}
+
+/* Die aeusserste Begrenzung: darueber waechst nur der Rand. */
+body > header,
+body > main,
+body > footer {
+  max-inline-size: var(--breite-rand);
+  margin-inline: auto;
+}
+
+main { display: block; }
+
+main:focus { outline: none; }
+
+/* Sprungziele muessen unter der klebenden Kopfzeile landen. */
+.aufmacher,
+.ressort,
+.feld,
+.abo-gruppe { scroll-margin-block-start: var(--raum-3xl); }
+
+/* Abstand zwischen den Ressorts (AD 4.4). */
+.ressort { margin-block-start: var(--raum-3xl); }
+
+@media (min-width: 900px) {
+  .ressort { margin-block-start: var(--raum-4xl); }
+}
+
+.noscript-hinweis {
+  margin-block: var(--raum-l);
+  padding: var(--raum-m);
+  border: var(--linie-fein) solid var(--linie-ui);
+  background: var(--flaeche-erhoben);
+  font-size: var(--schrift-s);
+  max-inline-size: 66ch;
+}
+
+
+/* ============================================================
+   05 · SPRUNGMARKE UND KOPFZEILE
+   ============================================================ */
+
+.sprungmarke {
+  position: absolute;
+  inset-inline-start: var(--raum-s);
+  inset-block-start: var(--raum-s);
+  z-index: 200;
+  transform: translateY(-200%);
+  display: inline-block;
+  padding: var(--raum-xs) var(--raum-s);
+  background: var(--flaeche-invers);
+  color: var(--farbe-text-invers);
+  border: var(--linie-mittel) solid var(--linie-stark);
+  font-family: var(--schrift-text);
+  font-size: var(--schrift-s);
+  font-weight: 600;
+  text-decoration: none;
+  transition: transform var(--dauer-kurz) var(--kurve-standard);
+}
+
+.sprungmarke:focus-visible { transform: translateY(0); }
+
+/* --- Kopfzeile --- */
+
+.kopfzeile {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 90;
+  background: var(--flaeche-basis);
+  border-block-end: var(--linie-block) solid var(--linie-stark);
+  transition: background-color var(--dauer-kurz) var(--kurve-standard);
+}
+
+.kopfzeile--kompakt { background: var(--flaeche-vertieft); }
+
+.kopfzeile__innen {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  grid-template-areas:
+    "marke menu werkzeuge"
+    "nav   nav  nav";
+  align-items: center;
+  column-gap: var(--raum-s);
+  row-gap: 0;
+  padding-block: var(--raum-s);
+}
+
+/* Wortmarke */
+
+.wortmarke {
+  grid-area: marke;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--raum-3xs);
+  font-family: var(--schrift-display);
+  font-size: var(--schrift-l);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.05em;
+}
+
+.wortmarke__punkt {
+  inline-size: 0.42em;
+  block-size: 0.42em;
+  background: var(--akzent-a-flaeche);
+  border-radius: 50%;
+  flex: 0 0 auto;
+  align-self: center;
+}
+
+.wortmarke__beizeile {
+  display: none;
+  flex-basis: 100%;
+  font-family: var(--schrift-text);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+}
+
+/* Menueknopf, nur unter 900 px */
+
+.menuknopf {
+  grid-area: menu;
+  padding: var(--raum-2xs) var(--raum-xs);
+  min-block-size: 44px;
+  border: var(--linie-fein) solid var(--linie-ui);
+  border-radius: var(--radius);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  transition: border-color var(--dauer-mikro) var(--kurve-standard),
+              color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.menuknopf:hover { border-color: var(--linie-stark); }
+
+.menuknopf[aria-expanded="true"] {
+  border-color: var(--linie-stark);
+  background: var(--flaeche-invers);
+  color: var(--farbe-text-invers);
+}
+
+/* Hauptnavigation */
+
+.hauptnav {
+  grid-area: nav;
+  display: none;
+  min-width: 0;
+  padding-block-start: var(--raum-s);
+}
+
+.menuknopf[aria-expanded="true"] + .hauptnav { display: block; }
+
+.hauptnav__liste {
+  display: flex;
+  flex-direction: column;
+  border-block-start: var(--linie-haar) solid var(--linie-leise);
+}
+
+.hauptnav__eintrag { border-block-end: var(--linie-haar) solid var(--linie-leise); }
+
+.hauptnav__link {
+  display: block;
+  padding: var(--raum-xs) 0;
+  min-block-size: 44px;
+  font-size: var(--schrift-s);
+  text-decoration: none;
+  text-underline-offset: 6px;
+  text-decoration-thickness: var(--linie-mittel);
+  transition: color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.hauptnav__link:hover { text-decoration: underline; }
+
+.hauptnav__link--aktiv {
+  color: var(--akzent-a);
+  font-weight: 600;
+  text-decoration: underline;
+  text-decoration-color: var(--akzent-a);
+}
+
+/* Suche */
+
+.suche {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--raum-2xs);
+  padding-block: var(--raum-s);
+  min-width: 0;
+}
+
+/* Sichtbar bleibt der Platzhalter; das Label traegt den zugaenglichen
+   Namen und ist geclippt, nicht abgeschaltet. */
+.suche__label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.suche__feld {
+  flex: 1 1 12ch;
+  min-inline-size: 0;
+  min-block-size: 44px;
+  padding: var(--raum-2xs) var(--raum-xs);
+  background: var(--flaeche-vertieft);
+  color: var(--farbe-text);
+  border: var(--linie-fein) solid var(--linie-ui);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  transition: border-color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.suche__feld:hover { border-color: var(--linie-stark); }
+.suche__feld::-webkit-search-cancel-button { display: none; }
+
+.suche__loeschen:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 44px;
+  padding-inline: var(--raum-2xs);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  transition: color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.suche__loeschen:hover { color: var(--farbe-text); }
+
+/* Werkzeuge rechts */
+
+.kopfzeile__werkzeuge {
+  grid-area: werkzeuge;
+  display: flex;
+  align-items: center;
+  gap: var(--raum-2xs);
+}
+
+.themenschalter {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  flex: 0 0 auto;
+  border: var(--linie-fein) solid var(--linie-ui);
+  border-radius: var(--radius);
+  color: var(--farbe-text);
+  transition: border-color var(--dauer-mikro) var(--kurve-standard),
+              color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.themenschalter:hover {
+  border-color: var(--linie-stark);
+  color: var(--akzent-a);
+}
+
+.kopfzeile__abo { flex: 0 0 auto; }
+
+/* Ab 900 px: eine Zeile, Beizeile sichtbar, kein Menueknopf. */
+@media (min-width: 900px) {
+  .kopfzeile__innen {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "marke nav werkzeuge";
+    column-gap: var(--raum-l);
+    min-block-size: 88px;
+    padding-block: var(--raum-xs);
+  }
+
+  .menuknopf { display: none; }
+
+  .wortmarke__beizeile { display: block; }
+
+  .hauptnav {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    flex-wrap: wrap;
+    gap: var(--raum-s) var(--raum-m);
+    padding-block-start: 0;
+  }
+
+  .hauptnav__liste {
+    flex-direction: row;
+    flex-wrap: wrap;
+    gap: var(--raum-s);
+    border-block-start: 0;
+  }
+
+  .hauptnav__eintrag { border-block-end: 0; }
+
+  .hauptnav__link {
+    padding: var(--raum-2xs) 0;
+    min-block-size: 0;
+  }
+
+  .suche {
+    padding-block: 0;
+    flex: 0 1 22ch;
+  }
+
+  /* Ein offen gelassenes Menue darf ab 900 px nicht die Blockform erben. */
+  .menuknopf[aria-expanded="true"] + .hauptnav { display: flex; }
+
+  .kopfzeile--kompakt .kopfzeile__innen { min-block-size: 60px; }
+
+  .kopfzeile--kompakt .wortmarke__beizeile { display: none; }
+}
+
+
+/* ============================================================
+   06 · KNOEPFE UND CHIPS
+   ============================================================ */
+
+.knopf:not([hidden]) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--raum-2xs);
+  min-block-size: 44px;
+  padding: var(--raum-2xs) var(--raum-s);
+  border: var(--linie-fein) solid transparent;
+  border-radius: var(--radius);
+  font-family: var(--schrift-text);
+  font-size: var(--schrift-s);
+  font-weight: 600;
+  line-height: 1.45;
+  text-align: center;
+  text-decoration: none;
+  transition: background-color var(--dauer-mikro) var(--kurve-standard),
+              border-color var(--dauer-mikro) var(--kurve-standard),
+              color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.knopf--primaer {
+  background: var(--akzent-a-flaeche);
+  color: var(--akzent-a-auf);
+  border-color: var(--akzent-a-flaeche);
+}
+
+.knopf--primaer:hover {
+  background: var(--flaeche-invers);
+  border-color: var(--linie-stark);
+  color: var(--farbe-text-invers);
+}
+
+.knopf--sekundaer {
+  background: transparent;
+  color: var(--farbe-text);
+  border-color: var(--linie-ui);
+  border-width: var(--linie-mittel);
+}
+
+.knopf--sekundaer:hover { border-color: var(--linie-stark); }
+
+.knopf--geist {
+  background: transparent;
+  color: var(--farbe-text-leise);
+  border-color: transparent;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+  text-decoration-thickness: var(--linie-fein);
+}
+
+.knopf--geist:hover { color: var(--farbe-text); }
+
+.knopf[disabled],
+.knopf[aria-disabled="true"] {
+  opacity: 0.72;
+  cursor: progress;
+}
+
+/* Filterchips */
+
+.filter-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--raum-2xs);
+  min-block-size: 44px;
+  padding: var(--raum-2xs) 14px;
+  background: transparent;
+  color: var(--farbe-text);
+  border: var(--linie-fein) solid var(--linie-ui);
+  border-radius: var(--radius);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: background-color var(--dauer-kurz) var(--kurve-standard),
+              border-color var(--dauer-kurz) var(--kurve-standard),
+              color var(--dauer-kurz) var(--kurve-standard);
+}
+
+/* Beim Ueberfahren wandert nur der Rahmen. Nichts bewegt sich. */
+.filter-chip:hover { border-color: var(--linie-stark); }
+
+.filter-chip--aktiv,
+.filter-chip[aria-pressed="true"] {
+  background: var(--flaeche-invers);
+  color: var(--farbe-text-invers);
+  border-width: var(--linie-mittel);
+  border-color: var(--linie-stark);
+}
+
+.filter-chip__zahl {
+  font-size: 0.92em;
+  letter-spacing: 0;
+  opacity: 0.85;
+}
+
+/* Rubrikmarke */
+
+.rubrikmarke {
+  margin: 0;
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--akzent-rubrik);
+  display: flex;
+  align-items: center;
+  gap: var(--raum-2xs);
+}
+
+/* Mittlere Karte: reine gesperrte Schrift plus Strich bis zum Rand. */
+.rubrikmarke::after {
+  content: "";
+  flex: 1 1 auto;
+  block-size: var(--linie-haar);
+  background: var(--akzent-rubrik);
+  transition: transform var(--dauer-kurz) var(--kurve-standard);
+  transform-origin: left center;
+}
+
+.rubrikmarke--kasten {
+  display: inline-flex;
+  padding: var(--raum-3xs) var(--raum-2xs);
+  background: var(--akzent-rubrik-flaeche);
+  color: var(--akzent-rubrik-auf);
+}
+
+.rubrikmarke--kasten::after { content: none; }
+
+
+/* ============================================================
+   07 · AUFMACHER
+   ============================================================ */
+
+.aufmacher {
+  position: relative;
+  overflow: clip;
+  padding-block: var(--raum-xl) var(--raum-l);
+  border-block-end: var(--linie-block) solid var(--linie-stark);
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--raum-l);
+  inline-size: 100%;
+  max-inline-size: var(--breite-weit);
+  margin-inline: auto;
+  padding-inline: var(--rand);
+}
+
+.aufmacher__text {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--raum-s);
+}
+
+.aufmacher__titel {
+  font-size: var(--schrift-xxl);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+  margin: 0;
+}
+
+.aufmacher__dachzeile {
+  order: -1;
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+}
+
+.aufmacher__lead {
+  font-size: var(--schrift-m);
+  font-weight: 400;
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+  color: var(--farbe-text);
+  max-inline-size: 52ch;
+}
+
+.aufmacher__meta {
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+}
+
+.aufmacher__artwork {
+  grid-column: 1 / -1;
+  grid-row: 1;
+  min-width: 0;
+  aspect-ratio: 3 / 2;
+  background: var(--artwork-papier);
+}
+
+/* Farbkontrolle wie auf einem Andruckbogen: drei Punkte, rechtsbuendig. */
+.aufmacher__marken {
+  grid-column: 1 / -1;
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--raum-2xs);
+  margin-block-start: var(--raum-s);
+}
+
+.aufmacher__marken span {
+  inline-size: 10px;
+  block-size: 10px;
+  border-radius: 50%;
+  background: var(--linie-stark);
+}
+
+.aufmacher__marken span:first-child { background: var(--akzent-a-flaeche); }
+.aufmacher__marken span:nth-child(2) { background: var(--akzent-b-flaeche); }
+
+@media (min-width: 900px) {
+  .aufmacher {
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    column-gap: var(--gasse);
+    row-gap: 0;
+    padding-block: var(--raum-2xl) var(--raum-l);
+    /* Senkrechte Haarlinien halten die zwoelf Spalten sichtbar. */
+    background-image: repeating-linear-gradient(
+      to right,
+      var(--linie-leise) 0,
+      var(--linie-leise) 1px,
+      transparent 1px,
+      transparent calc(100% / 12)
+    );
+    background-position: var(--rand) 0;
+    background-size: calc(100% - 2 * var(--rand)) 100%;
+    background-repeat: no-repeat;
+  }
+
+  .aufmacher__text {
+    grid-column: 1 / span 7;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  .aufmacher__artwork {
+    grid-column: 8 / span 5;
+    grid-row: 1;
+    aspect-ratio: 4 / 5;
+    margin-block-start: var(--raum-xl);
+    margin-inline-end: calc(-1 * var(--raum-l));
+  }
+}
+
+@media (min-width: 1440px) {
+  .aufmacher__text { grid-column: 1 / span 8; }
+  .aufmacher__artwork { grid-column: 9 / span 4; }
+}
+
+
+/* ============================================================
+   08 · RESSORT UND FILTERLEISTE
+   ============================================================ */
+
+.ressort__balken {
+  block-size: var(--linie-fett);
+  background: var(--linie-stark);
+  inline-size: 100%;
+  max-inline-size: var(--breite-weit);
+  margin-inline: auto;
+}
+
+.ressort__kopf {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--raum-2xs) var(--raum-m);
+  padding-block: var(--raum-m) var(--raum-l);
+}
+
+.ressort__titel {
+  min-width: 0;
+  margin: 0;
+}
+
+.ressort__beizeile {
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+  max-inline-size: 52ch;
+}
+
+.ressort--abo {
+  background: var(--flaeche-vertieft);
+  padding-block-end: var(--raum-3xl);
+}
+
+/* --- Filterleiste --- */
+
+.filterleiste {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-s);
+  padding-block-end: var(--raum-m);
+}
+
+.filterleiste__liste {
+  display: flex;
+  gap: var(--raum-2xs);
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  /* Platz fuer den Fokusring, der sonst am Scrollrand abgeschnitten wird. */
+  padding: var(--raum-3xs) var(--raum-3xs) var(--raum-2xs);
+  margin: calc(-1 * var(--raum-3xs));
+  scrollbar-width: none;
+}
+
+.filterleiste__liste::-webkit-scrollbar { display: none; }
+
+.filterleiste__eintrag {
+  flex: 0 0 auto;
+  scroll-snap-align: start;
+}
+
+/* Weiche Abschnittskante rechts, solange die Leiste scrollt. */
+.filterleiste::after {
+  content: "";
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+  inline-size: var(--raum-l);
+  block-size: 44px;
+  pointer-events: none;
+  background: linear-gradient(to right, transparent, var(--flaeche-basis));
+}
+
+.filterleiste__werkzeuge {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--raum-2xs) var(--raum-s);
+}
+
+.filterleiste__sortlabel {
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+}
+
+.filterleiste__sortierung {
+  min-block-size: 44px;
+  padding: var(--raum-2xs) var(--raum-xs);
+  background: var(--flaeche-vertieft);
+  color: var(--farbe-text);
+  border: var(--linie-fein) solid var(--linie-ui);
+  border-radius: var(--radius);
+  font-size: 1rem;
+  max-inline-size: 100%;
+  transition: border-color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.filterleiste__sortierung:hover { border-color: var(--linie-stark); }
+
+.filterleiste__zaehler {
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+  margin-inline-start: auto;
+}
+
+@media (min-width: 900px) {
+  .filterleiste {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--raum-m);
+  }
+
+  .filterleiste__liste {
+    flex-wrap: wrap;
+    overflow-x: visible;
+  }
+
+  .filterleiste::after { content: none; }
+
+  .filterleiste__werkzeuge { flex: 0 0 auto; }
+}
+
+/* --- Suchstatus, Leerzustand, Nachladen --- */
+
+.suchstatus {
+  inline-size: 100%;
+  max-inline-size: var(--breite-inhalt);
+  margin-inline: auto;
+  padding-inline: var(--rand);
+  padding-block-end: var(--raum-s);
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+}
+
+.suchstatus:empty { padding-block-end: 0; }
+
+.leerzustand:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--raum-s);
+  inline-size: 100%;
+  max-inline-size: var(--breite-schmal);
+  margin-inline: auto;
+  margin-block: var(--raum-l);
+  padding: var(--raum-m);
+  border: var(--linie-fein) solid var(--linie-ui);
+  background: var(--flaeche-erhoben);
+}
+
+.leerzustand__titel {
+  font-family: var(--schrift-display);
+  font-size: var(--schrift-l);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+}
+
+.leerzustand__text {
+  font-size: var(--schrift-basis);
+  color: var(--farbe-text-leise);
+  max-inline-size: 52ch;
+}
+
+.nachladen {
+  display: flex;
+  justify-content: center;
+  padding-block: var(--raum-xl);
+}
+
+
+/* ============================================================
+   09 · ARTIKELKARTEN
+   ============================================================ */
+
+/* Auch ohne .raster ein Raster: im Kuenstlerblatt steht
+   .artikelraster ohne die Utility-Klasse. */
+.artikelraster {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: var(--raum-xl) var(--gasse);
+  align-items: start;
+}
+
+.artikelkarte {
+  grid-column: span 12;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-xs);
+}
+
+.artikelkarte__regel {
+  block-size: var(--linie-fein);
+  background: var(--linie-stark);
+  transition: background-color var(--dauer-kurz) var(--kurve-standard);
+}
+
+.artikelkarte__artwork {
+  min-width: 0;
+  aspect-ratio: 3 / 2;
+  background: var(--artwork-papier);
+  border-block-end: var(--linie-fein) solid var(--linie-stark);
+  transition: transform var(--dauer-kurz) var(--kurve-standard);
+}
+
+.artikelkarte__titel {
+  margin: 0;
+  font-size: var(--schrift-l);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+
+.artikelkarte__link {
+  text-decoration: none;
+  text-underline-offset: 6px;
+  text-decoration-thickness: var(--linie-mittel);
+  transition: color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.artikelkarte__link:hover { text-decoration: underline; }
+
+.artikelkarte__anriss {
+  font-size: var(--schrift-basis);
+  color: var(--farbe-text);
+  max-inline-size: 46ch;
+}
+
+.artikelkarte__meta {
+  margin-block-start: auto;
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+}
+
+/* Zustaende der ganzen Karte - der Link bleibt die einzige Klickflaeche. */
+.artikelkarte:hover .artikelkarte__regel,
+.artikelkarte:focus-within .artikelkarte__regel { background: var(--akzent-a); }
+
+.artikelkarte:hover .artikelkarte__link,
+.artikelkarte:focus-within .artikelkarte__link { text-decoration: underline; }
+
+/* --- gross --- */
+
+.artikelkarte--gross .artikelkarte__regel { block-size: var(--linie-fett); }
+
+.artikelkarte--gross .artikelkarte__titel {
+  font-size: var(--schrift-xl);
+  line-height: 0.98;
+  letter-spacing: -0.022em;
+  font-weight: 700;
+}
+
+/* Der Papierlauf verzieht sich um 4 px - die einzige Bewegung am Artwork. */
+.artikelkarte--gross:hover .artikelkarte__artwork,
+.artikelkarte--gross:focus-within .artikelkarte__artwork {
+  transform: translateX(4px);
+}
+
+/* --- mittel --- */
+
+.artikelkarte--mittel .artikelkarte__artwork { aspect-ratio: 1 / 1; }
+
+.artikelkarte--mittel .artikelkarte__anriss {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  max-block-size: calc(2 * 1.62em);
+}
+
+/* Der Strich der Rubrikmarke rutscht um 8 px nach rechts. */
+.artikelkarte--mittel:hover .rubrikmarke::after,
+.artikelkarte--mittel:focus-within .rubrikmarke::after {
+  transform: translateX(8px);
+}
+
+/* --- kompakt --- */
+
+.artikelkarte--kompakt {
+  position: relative;
+  flex-direction: row;
+  align-items: flex-start;
+  flex-wrap: wrap;
+  gap: var(--raum-s);
+  min-block-size: 56px;
+  padding: var(--raum-xs) var(--raum-xs) var(--raum-xs) var(--raum-s);
+  border-block-start: var(--linie-haar) solid var(--linie-leise);
+  transition: background-color var(--dauer-kurz) var(--kurve-standard);
+}
+
+.artikelkarte--kompakt::before {
+  content: "";
+  position: absolute;
+  inset-block: 0;
+  inset-inline-start: 0;
+  inline-size: var(--linie-mittel);
+  background: transparent;
+  transition: background-color var(--dauer-kurz) var(--kurve-standard);
+}
+
+.artikelkarte--kompakt:hover,
+.artikelkarte--kompakt:focus-within { background: var(--flaeche-erhoben); }
+
+.artikelkarte--kompakt:hover::before,
+.artikelkarte--kompakt:focus-within::before { background: var(--akzent-a-flaeche); }
+
+.artikelkarte--kompakt .artikelkarte__marke {
+  flex: 0 0 auto;
+  inline-size: 56px;
+  block-size: 56px;
+  background: var(--artwork-papier);
+}
+
+.artikelkarte--kompakt .artikelkarte__titel {
+  flex: 1 1 12ch;
+  min-width: 0;
+  font-size: var(--schrift-m);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+
+.artikelkarte--kompakt .artikelkarte__meta {
+  flex: 1 1 100%;
+  order: -1;
+  margin-block-start: 0;
+  font-size: var(--schrift-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+@media (min-width: 640px) {
+  .artikelkarte--mittel,
+  .artikelkarte--kompakt { grid-column: span 6; }
+}
+
+@media (min-width: 900px) {
+  .artikelkarte--gross {
+    display: grid;
+    grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+    grid-template-rows: auto auto;
+    column-gap: var(--gasse);
+    align-items: start;
+  }
+
+  .artikelkarte--gross .artikelkarte__regel { grid-column: 1 / -1; }
+
+  .artikelkarte--gross .artikelkarte__artwork {
+    grid-column: 1;
+    grid-row: 2 / span 5;
+    border-block-end: 0;
+    border-inline-end: var(--linie-fein) solid var(--linie-stark);
+  }
+
+  .artikelkarte--gross .rubrikmarke,
+  .artikelkarte--gross .artikelkarte__titel,
+  .artikelkarte--gross .artikelkarte__anriss,
+  .artikelkarte--gross .artikelkarte__meta { grid-column: 2; }
+
+  .artikelkarte--kompakt { grid-column: span 4; }
+}
+
+@media (min-width: 1200px) {
+  .artikelkarte--mittel { grid-column: span 4; }
+}
+
+/* Im Kuenstlerblatt bleiben kompakte Karten eine Liste. */
+.kuenstlerblatt__bezuege .artikelkarte--kompakt { grid-column: span 12; }
+
+/* --- Schlagwoerter --- */
+
+.taglist {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--raum-2xs);
+  margin-block-start: var(--raum-l);
+}
+
+.taglist__tag {
+  padding: var(--raum-3xs) var(--raum-2xs);
+  border: var(--linie-haar) solid var(--linie-ui);
+  border-radius: var(--radius);
+  font-size: var(--schrift-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+}
+
+
+/* ============================================================
+   10 · KUENSTLERKARTEN
+   ============================================================ */
+
+.kuenstlerraster { align-items: stretch; }
+
+.kuenstlerkarte {
+  grid-column: span 12;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-2xs);
+  padding: var(--raum-s);
+  background: var(--flaeche-basis);
+  border: var(--linie-fein) solid var(--linie-ui);
+  transition: border-color var(--dauer-kurz) var(--kurve-standard);
+}
+
+.kuenstlerkarte:hover,
+.kuenstlerkarte:focus-within {
+  border-width: var(--linie-mittel);
+  border-color: var(--linie-stark);
+  /* Der Rahmen waechst um 1 px - die Karte selbst bleibt stehen. */
+  padding: 15px;
+}
+
+.kuenstlerkarte__artwork {
+  min-width: 0;
+  aspect-ratio: 1 / 1.25;
+  background: var(--artwork-papier);
+  margin-block-end: var(--raum-2xs);
+}
+
+.kuenstlerkarte__name {
+  margin: 0;
+  font-size: var(--schrift-l);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  font-weight: 600;
+}
+
+.kuenstlerkarte__knopf {
+  text-align: start;
+  text-underline-offset: 6px;
+  text-decoration-thickness: var(--linie-mittel);
+  transition: color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.kuenstlerkarte__knopf:hover { text-decoration: underline; }
+
+.kuenstlerkarte:hover .kuenstlerkarte__knopf,
+.kuenstlerkarte:focus-within .kuenstlerkarte__knopf { text-decoration: underline; }
+
+.kuenstlerkarte__ort {
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+}
+
+.kuenstlerkarte__genre {
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  font-style: italic;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow: hidden;
+  max-block-size: calc(2 * 1.45em);
+}
+
+.kuenstlerkarte__bezuege {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--raum-2xs) var(--raum-s);
+  margin-block-start: auto;
+  padding-block-start: var(--raum-s);
+}
+
+.kuenstlerkarte__bezug {
+  display: flex;
+  align-items: center;
+  gap: var(--raum-3xs);
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+}
+
+.kuenstlerkarte__feld {
+  inline-size: 12px;
+  block-size: 12px;
+  flex: 0 0 auto;
+  background: var(--akzent-rubrik-flaeche);
+}
+
+@media (min-width: 640px) {
+  .kuenstlerkarte { grid-column: span 6; }
+}
+
+@media (min-width: 900px) {
+  .kuenstlerkarte { grid-column: span 4; }
+}
+
+@media (min-width: 1200px) {
+  .kuenstlerkarte { grid-column: span 3; }
+}
+
+
+/* ============================================================
+   11 · PLAYLIST
+   ============================================================ */
+
+.playlist__stand {
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+  margin-inline-start: auto;
+}
+
+.playlist {
+  border-block-start: var(--linie-fett) solid var(--linie-stark);
+}
+
+.playlist__fussnote {
+  padding-block: var(--raum-m);
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+  max-inline-size: 66ch;
+}
+
+.playlistzeile {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  grid-template-areas:
+    "marke  nummer  laenge"
+    "marke  werk    werk"
+    "marke  label   rubrik"
+    "balken balken  balken"
+    "zeit   zeit    zeit"
+    "text   text    text";
+  align-items: center;
+  column-gap: var(--raum-s);
+  row-gap: var(--raum-3xs);
+  padding-block: var(--raum-xs);
+  border-block-end: var(--linie-haar) solid var(--linie-leise);
+  transition: background-color var(--dauer-kurz) var(--kurve-standard);
+}
+
+.playlistzeile:hover,
+.playlistzeile:focus-within { background: var(--flaeche-erhoben); }
+
+.playlistzeile__marke {
+  grid-area: marke;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  inline-size: 44px;
+  block-size: 44px;
+  color: var(--akzent-rubrik);
+  transition: transform var(--dauer-kurz) var(--kurve-standard);
+}
+
+.playlistzeile:hover .playlistzeile__marke { transform: rotate(30deg); }
+
+/* Der Ausloeser ist die Rillenmarke selbst (ENTSCHEIDUNG 5.8):
+   der Knopf liegt deckungsgleich darueber, ohne eigenes Play-Zeichen. */
+.playlistzeile__knopf {
+  grid-area: marke;
+  inline-size: 44px;
+  block-size: 44px;
+  border-radius: 50%;
+  z-index: 1;
+}
+
+.playlistzeile__nummer {
+  grid-area: nummer;
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+}
+
+.playlistzeile__werk {
+  grid-area: werk;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.playlistzeile__titel {
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.playlistzeile__interpret {
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+}
+
+.playlistzeile__label {
+  grid-area: label;
+  min-width: 0;
+  font-size: var(--schrift-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+  overflow-wrap: anywhere;
+}
+
+.playlistzeile__rubrik {
+  grid-area: rubrik;
+  justify-self: end;
+  font-size: var(--schrift-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--akzent-rubrik);
+}
+
+.playlistzeile__laenge {
+  grid-area: laenge;
+  justify-self: end;
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+}
+
+.playlistzeile__laufzeit {
+  grid-area: zeit;
+  display: none;
+  font-size: var(--schrift-s);
+  color: var(--akzent-a);
+}
+
+.playlistzeile__fortschritt {
+  grid-area: balken;
+  display: none;
+  block-size: var(--linie-fein);
+  background: var(--linie-leise);
+  margin-block-start: var(--raum-2xs);
+}
+
+.playlistzeile__fortschritt span {
+  display: block;
+  block-size: 100%;
+  inline-size: 100%;
+  background: var(--akzent-a-flaeche);
+  transform: scaleX(0);
+  transform-origin: left center;
+  transition: transform var(--dauer-kurz) linear;
+}
+
+.playlistzeile__kommentar {
+  grid-area: text;
+  display: none;
+  margin-block-start: var(--raum-2xs);
+  padding-inline-start: var(--raum-s);
+  border-inline-start: var(--linie-mittel) solid var(--akzent-rubrik);
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+  max-inline-size: 66ch;
+}
+
+.playlistzeile--laeuft { background: var(--flaeche-erhoben); }
+
+.playlistzeile--laeuft .playlistzeile__laufzeit,
+.playlistzeile--laeuft .playlistzeile__fortschritt { display: block; }
+
+.playlistzeile--laeuft .playlistzeile__kommentar { display: block; }
+
+.playlistzeile--laeuft .playlistzeile__marke { color: var(--akzent-a); }
+
+@media (min-width: 900px) {
+  .playlistzeile {
+    grid-template-columns:
+      44px 4ch minmax(0, 1fr) minmax(0, 11rem) minmax(0, 8rem) 6ch;
+    grid-template-areas:
+      "marke  nummer werk   label  rubrik laenge"
+      "balken balken balken balken balken zeit"
+      "text   text   text   text   text   text";
+  }
+
+  .playlistzeile__rubrik { justify-self: start; }
+}
+
+
+/* ============================================================
+   12 · ABO
+   ============================================================ */
+
+.tarife { align-items: stretch; }
+
+.tarif-karte {
+  position: relative;
+  grid-column: span 12;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-2xs);
+  padding: var(--raum-m);
+  background: var(--flaeche-erhoben);
+  border: var(--linie-fein) solid var(--linie-ui);
+  border-radius: var(--radius);
+  transition: border-color var(--dauer-kurz) var(--kurve-standard),
+              background-color var(--dauer-kurz) var(--kurve-standard);
+}
+
+.tarif-karte:hover { border-color: var(--linie-stark); }
+
+.tarif-karte__badge {
+  display: block;
+  order: -1;
+  margin: calc(-1 * var(--raum-m)) calc(-1 * var(--raum-m)) var(--raum-s);
+  padding: var(--raum-2xs) var(--raum-m);
+  background: var(--akzent-a-flaeche);
+  color: var(--akzent-a-auf);
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  text-align: center;
+}
+
+.tarif-karte__name {
+  display: block;
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+}
+
+.tarif-karte__preis {
+  display: block;
+  font-family: var(--schrift-display);
+  font-size: var(--schrift-l);
+  font-weight: 700;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  font-variant-numeric: tabular-nums;
+}
+
+.tarif-karte__satz {
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+  max-inline-size: 46ch;
+}
+
+/* Leistungsliste: 8-x-8-Quadrat statt Punkt. Die Liste entsteht zur
+   Laufzeit und traegt nur eine id, deshalb der Elementselektor. */
+.tarif-karte ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-2xs);
+  margin-block-start: var(--raum-2xs);
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+}
+
+.tarif-karte li {
+  position: relative;
+  padding-inline-start: var(--raum-s);
+}
+
+.tarif-karte li::before {
+  content: "";
+  position: absolute;
+  inset-inline-start: 0;
+  inset-block-start: 0.55em;
+  inline-size: 8px;
+  block-size: 8px;
+  background: var(--akzent-a-flaeche);
+}
+
+.tarif-karte--empfehlung {
+  background: var(--flaeche-akzent-a-leise);
+  border-width: var(--linie-mittel);
+  border-color: var(--akzent-a);
+  padding: 23px;
+}
+
+.tarif-karte--empfehlung .tarif-karte__badge {
+  margin: -23px -23px var(--raum-s);
+}
+
+/* Gewaehlt: Farbe, Rahmenstaerke und Haken - nie nur Farbe (AF 5.4). */
+.tarif-karte--gewaehlt {
+  border-width: var(--linie-mittel);
+  border-color: var(--akzent-a);
+}
+
+.tarif-karte--gewaehlt .tarif-karte__name::before {
+  content: "\2713\00A0";
+  color: var(--akzent-a);
+}
+
+/* Die ganze Karte ist Klickflaeche; das Radio steckt geclippt darin. */
+.tarif-karte label {
+  display: block;
+  cursor: pointer;
+}
+
+.tarif-karte input:checked + label .tarif-karte__name::before {
+  content: "\2713\00A0";
+  color: var(--akzent-a);
+}
+
+/* Rueckfall fuer Engines ohne :has() - der Rahmen kommt vom Label. */
+.tarif-karte input:focus-visible + label {
+  outline: 3px solid var(--akzent-fokus);
+  outline-offset: var(--raum-2xs);
+  border-radius: var(--radius);
+}
+
+.tarif-karte:has(input:focus-visible) {
+  outline: 3px solid var(--akzent-fokus);
+  outline-offset: 2px;
+}
+
+.tarif-karte:has(input:focus-visible) label { outline: none; }
+
+.tarif-karte:has(input:checked) {
+  border-width: var(--linie-mittel);
+  border-color: var(--akzent-a);
+}
+
+.abo-hinweis {
+  padding-block: var(--raum-l);
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+  max-inline-size: 66ch;
+}
+
+.abo-block {
+  padding-block: var(--raum-l);
+  max-inline-size: calc(var(--breite-schmal) + 2 * var(--rand));
+}
+
+.abo-entwurf:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--raum-s);
+  margin-block-end: var(--raum-m);
+  padding: var(--raum-s);
+  background: var(--flaeche-akzent-b-leise);
+  border-inline-start: var(--linie-mittel) solid var(--akzent-b);
+  font-size: var(--schrift-s);
+}
+
+.abo-formular {
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-xl);
+}
+
+.abo-formular[aria-busy="true"] { cursor: progress; }
+
+.abo-pflichthinweis {
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+}
+
+.abo-gruppe:not([hidden]) {
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-s);
+  padding-block-start: var(--raum-m);
+  border-block-start: var(--linie-haar) solid var(--linie-leise);
+}
+
+/* Das <fieldset> ist ein Flex-Container, die <legend> darin ein
+   Flex-Element - deshalb kein Float-Behelf. */
+.abo-gruppe legend {
+  inline-size: 100%;
+  margin-block-end: var(--raum-2xs);
+}
+
+/* --- Einzelfeld --- */
+
+.feld {
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-3xs);
+  min-width: 0;
+}
+
+.feld label {
+  font-size: var(--schrift-s);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.feld input,
+.feld select,
+.feld textarea {
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding: var(--raum-xs) 14px;
+  background: var(--flaeche-vertieft);
+  color: var(--farbe-text);
+  border: var(--linie-haar) solid var(--linie-ui);
+  border-radius: var(--radius);
+  /* 16 px verhindern das Auto-Zoom auf iOS. */
+  font-size: 1rem;
+  line-height: 1.45;
+  transition: border-color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.feld input:hover,
+.feld select:hover,
+.feld textarea:hover { border-color: var(--linie-stark); }
+
+.feld input:focus,
+.feld select:focus,
+.feld textarea:focus { border-color: var(--farbe-text); }
+
+.feld input[aria-invalid="true"],
+.feld select[aria-invalid="true"],
+.feld textarea[aria-invalid="true"] {
+  border-width: var(--linie-fein);
+  border-color: var(--fehler);
+}
+
+.feld--fehler label { color: var(--fehler); }
+
+.feld-hilfe {
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+}
+
+.feld-notiz:not([hidden]) {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--raum-2xs);
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+}
+
+.feld-zaehler {
+  font-size: var(--schrift-s);
+  color: var(--farbe-text-leise);
+  align-self: flex-end;
+}
+
+.feld-fehler:not([hidden]) {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--raum-2xs);
+  padding: var(--raum-3xs) var(--raum-2xs);
+  background: var(--fehler-flaeche);
+  color: var(--fehler);
+  font-size: var(--schrift-s);
+  font-weight: 600;
+  line-height: 1.45;
+}
+
+.feld-fehler__zeichen {
+  flex: 0 0 auto;
+  inline-size: 16px;
+  block-size: 16px;
+  margin-block-start: 0.15em;
+  fill: currentColor;
+}
+
+/* --- Kontrollkaestchen und Wahllisten --- */
+
+.feld--kontrolle { gap: var(--raum-2xs); }
+
+.feld__kontrolle {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--raum-xs);
+  padding: var(--raum-2xs) var(--raum-3xs);
+  min-block-size: 44px;
+  cursor: pointer;
+  font-weight: 400;
+}
+
+.feld__kontrolle input {
+  flex: 0 0 auto;
+  inline-size: 20px;
+  block-size: 20px;
+  margin-block-start: 0.2em;
+  accent-color: var(--akzent-a-flaeche);
+}
+
+.feld__kontrolltext {
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  font-weight: 400;
+}
+
+.wahlliste {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--raum-2xs);
+}
+
+.wahlliste label {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--raum-xs);
+  padding: var(--raum-2xs) var(--raum-3xs);
+  min-block-size: 44px;
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  cursor: pointer;
+}
+
+.wahlliste input {
+  flex: 0 0 auto;
+  inline-size: 20px;
+  block-size: 20px;
+  margin-block-start: 0.15em;
+  accent-color: var(--akzent-a-flaeche);
+}
+
+.tarife-auswahl { gap: var(--raum-m); }
+
+.tarife-auswahl__liste {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--raum-s);
+}
+
+@media (min-width: 640px) {
+  .wahlliste--zweispaltig { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (min-width: 900px) {
+  .tarif-karte { grid-column: span 4; }
+  .tarife-auswahl__liste { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* --- Fehlerzusammenfassung --- */
+
+.fehlerliste:not([hidden]) {
+  display: block;
+  padding: var(--raum-s) var(--raum-m);
+  background: var(--fehler-flaeche);
+  border-inline-start: var(--linie-mittel) solid var(--fehler);
+}
+
+.fehlerliste h3 {
+  font-size: var(--schrift-m);
+  color: var(--fehler);
+  margin-block-end: var(--raum-2xs);
+}
+
+.fehlerliste ol {
+  list-style: decimal;
+  padding-inline-start: var(--raum-m);
+  margin-block-start: var(--raum-2xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-2xs);
+  font-size: var(--schrift-s);
+}
+
+/* Links bleiben als Links lesbar; die Farbe traegt der Balken. */
+.fehlerliste a {
+  color: var(--farbe-text);
+  text-underline-offset: 3px;
+}
+
+/* --- Quittung und Datenschutz --- */
+
+.abo-quittung-ziel:has(> *) {
+  display: block;
+  margin-block-start: var(--raum-m);
+  padding: var(--raum-m);
+  background: var(--erfolg-flaeche);
+  border: var(--linie-haar) solid var(--erfolg);
+}
+
+.abo-quittung-ziel h3 {
+  font-size: var(--schrift-l);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  margin-block-end: var(--raum-2xs);
+}
+
+.abo-quittung-ziel p {
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  margin-block-start: var(--raum-2xs);
+  max-inline-size: 66ch;
+}
+
+.abo-quittung-ziel button { margin-block-start: var(--raum-s); }
+
+.abo-quittung {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--raum-2xs);
+  margin-block: var(--raum-s);
+  font-size: var(--schrift-s);
+}
+
+.abo-quittung div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--raum-3xs);
+  padding-block: var(--raum-2xs);
+  border-block-start: var(--linie-haar) solid var(--linie-leise);
+}
+
+.abo-quittung dt {
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+}
+
+.abo-quittung dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+@media (min-width: 640px) {
+  .abo-quittung div {
+    grid-template-columns: minmax(0, 12rem) minmax(0, 1fr);
+    gap: var(--raum-s);
+    align-items: baseline;
+  }
+}
+
+.datenschutz {
+  margin-block-start: var(--raum-xl);
+  padding-block-start: var(--raum-m);
+  border-block-start: var(--linie-haar) solid var(--linie-leise);
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--raum-s);
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+}
+
+.datenschutz h3 {
+  font-size: var(--schrift-m);
+  color: var(--farbe-text);
+}
+
+.datenschutz p { max-inline-size: 66ch; }
+
+.datenschutz code { overflow-wrap: anywhere; }
+
+
+/* ============================================================
+   13 · FUSSZEILE
+   ============================================================ */
+
+.fusszeile {
+  position: relative;
+  overflow: clip;
+  margin-block-start: var(--raum-3xl);
+  border-block-start: var(--linie-block) solid var(--linie-stark);
+  background: var(--flaeche-vertieft);
+  padding-block-start: var(--raum-2xl);
+}
+
+.fusszeile__innen { align-items: start; }
+
+.fussgruppe {
+  grid-column: span 12;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-2xs);
+  margin-block-end: var(--raum-m);
+}
+
+.fussgruppe__kopf {
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  line-height: 1.2;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+  padding-block-end: var(--raum-2xs);
+  border-block-end: var(--linie-haar) solid var(--linie-leise);
+}
+
+.fussgruppe__liste {
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-xs);
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+}
+
+.fussgruppe__link {
+  text-decoration: none;
+  text-underline-offset: 4px;
+  text-decoration-thickness: var(--linie-fein);
+  transition: color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.fussgruppe__link:hover {
+  color: var(--akzent-a);
+  text-decoration: underline;
+}
+
+.fussgruppe__eintrag { color: var(--farbe-text-leise); }
+
+/* Die einzige rein dekorative Geste der Seite: die angeschnittene
+   Wortmarke am unteren Rand. */
+.fusszeile__marke {
+  margin-block-start: var(--raum-l);
+  margin-block-end: -0.28em;
+  padding-inline: var(--rand);
+  max-inline-size: var(--breite-rand);
+  margin-inline: auto;
+  font-family: var(--schrift-display);
+  font-size: var(--schrift-xxl);
+  font-weight: 700;
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  color: var(--linie-leise);
+  user-select: none;
+}
+
+.fusszeile__kolophon {
+  padding-block: var(--raum-m);
+  font-size: var(--schrift-xs);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+  border-block-start: var(--linie-haar) solid var(--linie-leise);
+}
+
+@media (min-width: 640px) {
+  .fussgruppe { grid-column: span 6; }
+}
+
+@media (min-width: 900px) {
+  .fussgruppe { grid-column: span 3; }
+}
+
+
+/* ============================================================
+   14 · OVERLAYS
+   ============================================================ */
+
+.overlay:not([hidden]) {
+  display: block;
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+}
+
+.overlay--offen { animation: overlay-ein var(--dauer-mittel) var(--kurve-rein) both; }
+
+/* Der Verdunkler ist neben dem Fokusring der einzige erlaubte
+   Schatteneffekt im Projekt (AD 5.9). Der Wert steht in beiden Themen
+   ausgeschrieben, keine Farbe lebt nur in einem Medienblock. */
+.overlay__verdunkler {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  cursor: pointer;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .overlay__verdunkler {
+    background: rgba(20, 20, 24, 0.55);
+  }
+}
+
+:root[data-theme="light"] .overlay__verdunkler { background: rgba(20, 20, 24, 0.55); }
+:root[data-theme="dark"] .overlay__verdunkler { background: rgba(0, 0, 0, 0.72); }
+
+.overlay__panel {
+  position: absolute;
+  inset: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  background: var(--flaeche-erhoben);
+}
+
+.overlay--offen .overlay__panel {
+  animation: panel-ein var(--dauer-mittel) var(--kurve-rein) both;
+}
+
+.overlay__schliessen {
+  min-block-size: 44px;
+  padding: var(--raum-2xs) var(--raum-xs);
+  border: var(--linie-fein) solid var(--linie-ui);
+  border-radius: var(--radius);
+  background: var(--flaeche-erhoben);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  transition: border-color var(--dauer-mikro) var(--kurve-standard),
+              color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.overlay__schliessen:hover {
+  border-color: var(--linie-stark);
+  color: var(--akzent-a);
+}
+
+@media (min-width: 900px) {
+  .overlay__panel {
+    inset: var(--raum-l);
+    inset-inline: auto;
+    margin-inline: auto;
+    inline-size: min(100% - 2 * var(--raum-l), var(--breite-weit));
+    border: var(--linie-fein) solid var(--linie-stark);
+  }
+}
+
+/* --- Lesemodus --- */
+
+.lesemodus__panel {
+  --schrift-basis: clamp(1.0625rem, 1rem + 0.22vw, 1.1875rem);
+}
+
+.lesemodus__panel[data-schriftgroesse="s"] {
+  --schrift-basis: clamp(1rem, 0.9375rem + 0.22vw, 1.125rem);
+}
+
+.lesemodus__panel[data-schriftgroesse="l"] {
+  --schrift-basis: clamp(1.125rem, 1.0625rem + 0.22vw, 1.25rem);
+}
+
+@media (min-width: 900px) {
+  .lesemodus__panel {
+    inline-size: min(100% - 2 * var(--raum-l), calc(var(--breite-schmal) + 2 * var(--raum-2xl)));
+  }
+}
+
+.lesemodus__leiste {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--raum-s);
+  padding: var(--raum-xs) var(--rand);
+  background: var(--flaeche-erhoben);
+  border-block-end: var(--linie-fein) solid var(--linie-stark);
+}
+
+.lesemodus__fortschritt {
+  order: 3;
+  flex: 1 1 100%;
+  block-size: var(--linie-fein);
+  background: var(--linie-leise);
+}
+
+.lesemodus__balken {
+  block-size: 100%;
+  inline-size: 100%;
+  background: var(--akzent-a-flaeche);
+  transform: scaleX(0);
+  transform-origin: left center;
+}
+
+.lesemodus__groesse {
+  display: flex;
+  gap: var(--raum-3xs);
+  margin-inline-start: auto;
+}
+
+.lesemodus__groesse button {
+  inline-size: 44px;
+  block-size: 44px;
+  border: var(--linie-fein) solid var(--linie-ui);
+  border-radius: var(--radius);
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-s);
+  font-weight: 600;
+  text-align: center;
+  transition: background-color var(--dauer-mikro) var(--kurve-standard),
+              border-color var(--dauer-mikro) var(--kurve-standard),
+              color var(--dauer-mikro) var(--kurve-standard);
+}
+
+.lesemodus__groesse button:hover { border-color: var(--linie-stark); }
+
+.lesemodus__groesse button[aria-pressed="true"] {
+  background: var(--flaeche-invers);
+  color: var(--farbe-text-invers);
+  border-color: var(--linie-stark);
+}
+
+.lesemodus__inhalt {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: calc(var(--breite-schmal) + 2 * var(--rand));
+  margin-inline: auto;
+  padding: var(--raum-xl) var(--rand) var(--raum-3xl);
+}
+
+.lesemodus__dachzeile {
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  line-height: 1.2;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+  margin-block-end: var(--raum-s);
+}
+
+.lesemodus__titel {
+  font-size: var(--schrift-xxl);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+.lesemodus__meta {
+  margin-block-start: var(--raum-s);
+  padding-block-end: var(--raum-m);
+  border-block-end: var(--linie-fein) solid var(--linie-leise);
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+}
+
+/* Der einzige Ort, an dem RILLE wie ein Buch gesetzt ist:
+   Erstzeileneinzug statt Absatzabstand. */
+.lesemodus__text {
+  margin-block-start: var(--raum-m);
+  max-inline-size: 66ch;
+  font-size: var(--schrift-basis);
+  line-height: 1.72;
+  hyphens: auto;
+}
+
+.lesemodus__absatz { text-indent: 1.5em; }
+
+.lesemodus__absatz--erster { text-indent: 0; }
+
+.lesemodus__absatz--erster::first-letter {
+  float: left;
+  font-family: var(--schrift-display);
+  font-size: 3.1em;
+  line-height: 0.86;
+  font-weight: 700;
+  color: var(--akzent-a);
+  padding-inline-end: 0.08em;
+  padding-block-start: 0.05em;
+}
+
+.pullquote {
+  margin-block: var(--raum-l);
+  padding-block-start: var(--raum-s);
+  border-block-start: var(--linie-fett) solid var(--akzent-a);
+  max-inline-size: 34ch;
+  font-family: var(--schrift-display);
+  font-size: var(--schrift-l);
+  font-weight: 600;
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  text-indent: 0;
+}
+
+.pullquote p { text-indent: 0; }
+
+@media (min-width: 900px) {
+  .pullquote { margin-inline-start: calc(-1 * var(--raum-2xl)); }
+}
+
+/* --- Kuenstlerblatt --- */
+
+.kuenstlerblatt__inhalt {
+  display: block;
+  inline-size: 100%;
+  max-inline-size: var(--breite-weit);
+  margin-inline: auto;
+  padding: var(--raum-2xl) var(--rand) var(--raum-3xl);
+}
+
+.kuenstlerblatt__panel .overlay__schliessen {
+  position: sticky;
+  inset-block-start: var(--raum-s);
+  z-index: 2;
+  margin: var(--raum-s) var(--rand) 0 auto;
+  display: block;
+}
+
+.kuenstlerblatt__kopf {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--raum-m);
+  padding-block-end: var(--raum-l);
+  border-block-end: var(--linie-block) solid var(--linie-stark);
+}
+
+.kuenstlerblatt__artwork {
+  min-width: 0;
+  aspect-ratio: 4 / 5;
+  max-inline-size: 320px;
+  background: var(--artwork-papier);
+}
+
+.kuenstlerblatt__titelblock {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-m);
+}
+
+.kuenstlerblatt__name {
+  font-size: var(--schrift-xxl);
+  line-height: 0.92;
+  letter-spacing: -0.03em;
+  font-weight: 700;
+}
+
+.steckbrief {
+  overflow-x: auto;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  font-size: var(--schrift-s);
+}
+
+.steckbrief__paar {
+  display: grid;
+  grid-template-columns: minmax(0, 9rem) minmax(0, 1fr);
+  gap: var(--raum-s);
+  padding-block: var(--raum-2xs);
+  border-block-start: var(--linie-haar) solid var(--linie-leise);
+}
+
+.steckbrief dt {
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+}
+
+.steckbrief dd { margin: 0; }
+
+.kuenstlerblatt__satz {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: var(--raum-m);
+  padding-block: var(--raum-xl);
+}
+
+.kuenstlerblatt__text {
+  min-width: 0;
+  max-inline-size: 66ch;
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-m);
+}
+
+.marginalie {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-m);
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+}
+
+.marginalie__zitat {
+  margin: 0;
+  padding-inline-start: var(--raum-s);
+  border-inline-start: var(--linie-mittel) solid var(--akzent-b);
+  font-family: var(--schrift-display);
+  font-size: var(--schrift-m);
+  line-height: 1.3;
+  letter-spacing: -0.005em;
+}
+
+.marginalie__zitat footer {
+  margin-block-start: var(--raum-2xs);
+  font-family: var(--schrift-text);
+  font-size: var(--schrift-s);
+  line-height: 1.45;
+  color: var(--farbe-text-leise);
+}
+
+.marginalie__block {
+  padding-block-start: var(--raum-s);
+  border-block-start: var(--linie-haar) solid var(--linie-leise);
+}
+
+.marginalie__kopf {
+  font-family: var(--schrift-meta);
+  font-size: var(--schrift-xs);
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--farbe-text-leise);
+  margin-block-end: var(--raum-2xs);
+}
+
+.marginalie__text { color: var(--farbe-text-leise); }
+
+.diskografie {
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-2xs);
+  font-size: var(--schrift-s);
+}
+
+.diskografie__jahr { color: var(--farbe-text-leise); }
+
+.diskografie__titel { font-weight: 600; }
+
+.diskografie__format {
+  display: block;
+  color: var(--farbe-text-leise);
+}
+
+.kuenstlerblatt__bezuege {
+  padding-block-start: var(--raum-l);
+  border-block-start: var(--linie-fett) solid var(--linie-stark);
+}
+
+.kuenstlerblatt__bezuege h3 {
+  font-size: var(--schrift-l);
+  line-height: 1.08;
+  letter-spacing: -0.015em;
+  margin-block-end: var(--raum-m);
+}
+
+.kuenstlerblatt__zurueck {
+  margin-block-start: var(--raum-xl);
+  color: var(--akzent-a);
+}
+
+@media (min-width: 640px) {
+  .steckbrief { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .steckbrief__paar { grid-template-columns: minmax(0, 8rem) minmax(0, 1fr); }
+}
+
+@media (min-width: 900px) {
+  .kuenstlerblatt__kopf {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    gap: var(--gasse);
+  }
+
+  .kuenstlerblatt__artwork { max-inline-size: none; }
+
+  .steckbrief { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+
+  .steckbrief__paar {
+    grid-template-columns: minmax(0, 1fr);
+    gap: var(--raum-3xs);
+  }
+
+  /* AD 5.8: links bleibt eine breite Marginalspalte stehen. */
+  .kuenstlerblatt__satz {
+    grid-template-columns: minmax(0, 4fr) minmax(0, 8fr);
+    gap: var(--gasse);
+  }
+
+  .kuenstlerblatt__text { grid-column: 2; grid-row: 1; }
+
+  .marginalie { grid-column: 1; grid-row: 1; }
+}
+
+
+/* ============================================================
+   15 · ARTWORK
+   ============================================================ */
+
+/* Jede Grafik entsteht im Code. Die Container geben nur das Format
+   vor, die Farben kommen ueber die --artwork-*-Tokens aus dem Theme. */
+.artwork {
+  display: block;
+  inline-size: 100%;
+  block-size: 100%;
+}
+
+.artwork--symbol {
+  inline-size: 20px;
+  block-size: 20px;
+}
+
+/* Die Blendmethode entscheidet das Theme, nie das JavaScript (AD 7.4):
+   screen auf tiefem Schwarz, multiply auf Werkdruckpapier. */
+.artwork__auszug { mix-blend-mode: screen; }
+.artwork__korn {
+  mix-blend-mode: overlay;
+  opacity: 0.09;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) .artwork__auszug { mix-blend-mode: multiply; }
+  :root:not([data-theme="dark"]) .artwork__korn { opacity: 0.13; }
+}
+
+:root[data-theme="light"] .artwork__auszug { mix-blend-mode: multiply; }
+:root[data-theme="light"] .artwork__korn { opacity: 0.13; }
+:root[data-theme="dark"] .artwork__auszug { mix-blend-mode: screen; }
+:root[data-theme="dark"] .artwork__korn { opacity: 0.09; }
+
+/* Passkreuze, Beschnitt- und Kontrollmarken bleiben ruhig. */
+.artwork__marken,
+.artwork__kontrolle,
+.artwork__kennung { mix-blend-mode: normal; }
+
+/* Die Rillenmarke der Playlist sitzt in einem 28-px-Feld. */
+.playlistzeile__marke .artwork {
+  inline-size: 28px;
+  block-size: 28px;
+}
+
+
+/* ============================================================
+   16 · BEWEGUNG UND REDUZIERTE BEWEGUNG
+   ============================================================ */
+
+/* Animiert werden ausschliesslich opacity, transform und Farben.
+   Verschiebungen sind klein und gerade, hoechstens 8 px (AD 6.2). */
+
+@keyframes overlay-ein {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+@keyframes panel-ein {
+  from { opacity: 0; transform: translateY(8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* Die drei Punkte im Absendeknopf (AF 4.4). */
+@keyframes punkte {
+  0%   { opacity: 0.25; }
+  50%  { opacity: 1; }
+  100% { opacity: 0.25; }
+}
+
+.knopf[aria-disabled="true"]::after {
+  content: "";
+  inline-size: 6px;
+  block-size: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: punkte var(--dauer-lang) var(--kurve-standard) infinite;
+}
+
+/* --- prefers-reduced-motion: reduce --- */
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    transition-duration: 1ms !important;
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+  }
+
+  html { scroll-behavior: auto !important; }
+
+  /* Das Overlay blendet nur noch, es faehrt nicht mehr ein. */
+  .overlay--offen { transition: opacity 100ms linear !important; }
+  .overlay--offen .overlay__panel { animation: none !important; }
+
+  /* Keine Verschiebungen, keine Drehungen (AD 6.3). */
+  .artikelkarte--gross:hover .artikelkarte__artwork,
+  .artikelkarte--gross:focus-within .artikelkarte__artwork,
+  .artikelkarte--mittel:hover .rubrikmarke::after,
+  .artikelkarte--mittel:focus-within .rubrikmarke::after,
+  .playlistzeile:hover .playlistzeile__marke {
+    transform: none !important;
+  }
+
+  .sprungmarke { transition: none !important; }
+
+  .knopf[aria-disabled="true"]::after { animation: none !important; }
+}
+
+
+/* ============================================================
+   16b · DRUCK
+   Overlays, Navigation und Bedienelemente entfallen; der Text
+   steht schwarz auf weiss. Die Hierarchie traegt sich ueber
+   Groesse und Linien, nicht ueber Farbe (AD 8.7).
+   ============================================================ */
+
+@media print {
+  :root {
+    color-scheme: light !important;
+
+    --flaeche-basis:          #FFFFFF;
+    --flaeche-erhoben:        #FFFFFF;
+    --flaeche-vertieft:       #FFFFFF;
+    --flaeche-invers:         #FFFFFF;
+    --flaeche-akzent-a-leise: #FFFFFF;
+    --flaeche-akzent-b-leise: #FFFFFF;
+
+    --farbe-text:             #000000;
+    --farbe-text-leise:       #333333;
+    --farbe-text-invers:      #000000;
+
+    --linie-stark:            #000000;
+    --linie-ui:               #000000;
+    --linie-leise:            #999999;
+
+    --akzent-a:               #000000;
+    --akzent-a-flaeche:       #FFFFFF;
+    --akzent-a-auf:           #000000;
+    --akzent-b:               #000000;
+    --akzent-b-flaeche:       #FFFFFF;
+    --akzent-b-auf:           #000000;
+    --akzent-fokus:           #000000;
+
+    --fehler:                 #000000;
+    --fehler-flaeche:         #FFFFFF;
+    --erfolg:                 #000000;
+    --erfolg-flaeche:         #FFFFFF;
+
+    --rand:  0;
+    --gasse: 16px;
+  }
+
+  body {
+    background: #FFFFFF !important;
+    color: #000000 !important;
+    font-size: 11pt;
+    line-height: 1.5;
+  }
+
+  .sprungmarke,
+  .menuknopf,
+  .hauptnav,
+  .kopfzeile__werkzeuge,
+  .filterleiste,
+  .nachladen,
+  .overlay,
+  .playlistzeile__knopf,
+  .playlistzeile__fortschritt,
+  .playlistzeile__laufzeit,
+  .abo-formular,
+  .abo-entwurf,
+  .noscript-hinweis,
+  .fusszeile__marke { display: none !important; }
+
+  .kopfzeile {
+    position: static !important;
+    border-block-end-width: 3px;
+  }
+
+  .aufmacher__artwork,
+  .artikelkarte__artwork,
+  .artikelkarte__marke,
+  .kuenstlerkarte__artwork,
+  .playlistzeile__marke { display: none !important; }
+
+  .aufmacher,
+  .ressort,
+  .fusszeile { margin-block-start: 12pt; }
+
+  .artikelkarte,
+  .kuenstlerkarte,
+  .playlistzeile,
+  .tarif-karte {
+    break-inside: avoid;
+    border-color: #000000;
+  }
+
+  .artikelkarte--gross,
+  .artikelkarte--mittel,
+  .artikelkarte--kompakt,
+  .kuenstlerkarte,
+  .tarif-karte,
+  .fussgruppe { grid-column: span 12 !important; }
+
+  h1, h2, h3 { break-after: avoid; }
+}
