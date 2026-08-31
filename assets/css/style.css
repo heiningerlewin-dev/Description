@@ -556,6 +556,15 @@ main:focus { outline: none; }
 .feld,
 .abo-gruppe { scroll-margin-block-start: var(--raum-3xl); }
 
+/* Ab 900 px traegt die Kopfzeile eine zweite Reihe und bleibt auch kompakt
+   rund 140 px hoch - mit 96 px endeten die Sprungziele unter ihrem Rand. */
+@media (min-width: 900px) {
+  .aufmacher,
+  .ressort,
+  .feld,
+  .abo-gruppe { scroll-margin-block-start: var(--raum-4xl); }
+}
+
 /* Abstand zwischen den Ressorts (AD 4.4). */
 .ressort { margin-block-start: var(--raum-3xl); }
 
@@ -1930,6 +1939,17 @@ main:focus { outline: none; }
   cursor: pointer;
 }
 
+/* Das Label deckt die komplette Karte ab (AF 5.4: Trefferflaeche >> 44x44 px).
+   Ohne diese Flaeche endet ein Klick, der neben dem Beschriftungstext beginnt
+   oder waehrend einer Blur-Pruefung um eine Zeile verrutscht, auf .tarif-karte
+   statt auf dem Label - und das Radio bleibt ungewaehlt. */
+.tarif-karte label::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radius);
+}
+
 .tarif-karte input:checked + label .tarif-karte__name::before {
   content: "\2713\00A0";
   color: var(--akzent-a);
@@ -2223,6 +2243,25 @@ main:focus { outline: none; }
 }
 
 .abo-quittung-ziel button { margin-block-start: var(--raum-s); }
+
+/* app.js legt die Knoepfe in .abo-karte__knoepfe ab; ohne eigene Regel liefen
+   sie als Inline-Boxen mit Einzelabstand ungleichmaessig um. */
+.abo-karte__knoepfe {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--raum-xs);
+  margin-block-start: var(--raum-s);
+}
+
+.abo-karte__knoepfe button { margin-block-start: 0; }
+
+/* „Bereits angemeldet“ ist kein Erfolg, sondern ein Hinweis (AF 4.6):
+   erhobene Flaeche mit UI-Linie statt der gruenen Erfolgsflaeche. */
+.abo-quittung-ziel:has(.abo-karte--bekannt) {
+  background: var(--flaeche-erhoben);
+  border-color: var(--linie-ui);
+}
 
 .abo-quittung {
   display: grid;

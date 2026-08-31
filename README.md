@@ -1,30 +1,61 @@
-# Double Pendulum
+# RILLE — Magazin für unabhängige Musik
 
-A self-contained HTML/CSS/JS animation of a **double pendulum** — two rods pinned
-end-to-end, swinging under gravity. The system is genuinely chaotic: two runs from
-almost-identical starting angles diverge quickly. The lower bob paints a fading
-trail so you can watch the path it carves.
+Ein Indie-Musikmagazin als einzelne, vollständig statische Seite: Artikelvorschauen,
+Künstlerporträts und ein Anmeldeformular für Abonnements. Kein Build, keine Abhängigkeiten,
+keine Netzwerkzugriffe — `index.html` im Browser öffnen genügt.
 
-## Run it
+Alle Inhalte sind erfunden: Bands, Labels, Alben, Clubs und Autor:innen existieren nicht.
 
-Just open `index.html` in any modern browser. No build step, no dependencies.
+## Öffnen
 
-## How it works
+```
+index.html
+```
 
-- **Equations of motion** — the analytic angular accelerations for a double
-  pendulum, derived from the Lagrangian.
-- **Integration** — fourth-order Runge–Kutta on a fixed `1/240 s` timestep with an
-  accumulator, so the simulation stays stable and frame-rate independent (the chaos
-  is real, not integrator drift).
-- **Trail** — recent positions of the lower bob are kept in a ring buffer and drawn
-  as connected segments whose opacity and width fall off with age, giving a
-  smoothly fading ribbon plus a soft glow at the leading tip.
+Direkt per Doppelklick oder `file://`. Wer einen Server bevorzugt:
+`python3 -m http.server` im Projektverzeichnis.
 
-## Controls
+## Was drin ist
 
-| Action | Control |
-| --- | --- |
-| Pause / play | `Space` or the **Pause** button |
-| Reset (new random start) | `R` or the **Reset** button |
-| Toggle the trail | **Hide trail** button |
-| Launch a new pendulum aimed at a point | click / tap anywhere |
+**Aufmacher** — die Geschichte des Hauses, groß gesetzt, mit generiertem Cover.
+
+**Aktuelle Beiträge** — 13 Artikel aus sechs Rubriken (Rezension, Interview, Porträt, Live,
+Kolumne, Entdeckung) als Raster in drei Kartengrößen. Filter nach Rubrik, Live-Suche über
+Titel, Dachzeile, Teaser, Tags und Autor:in, Sortierung nach Datum oder Titel, Trefferzähler
+mit `aria-live`, gestalteter Leerzustand mit Rücksetzer, „Mehr laden".
+
+**Lesemodus** — jeder Beitrag öffnet sich als Overlay mit dem vollständigen Text,
+Fortschrittsbalken, drei Schriftgrößen und Fokusfalle; `Esc` schließt, der Fokus kehrt zur
+auslösenden Karte zurück.
+
+**Künstlerporträts** — acht Acts mit Duoton-Porträt, Herkunft, Genre, Besetzung. Das
+Künstlerblatt zeigt das ausführliche Porträt, ein Zitat, die Diskografie und den Track des
+Monats und verlinkt in die passenden Beiträge.
+
+**Playlist der Redaktion** — zehn Titel mit Kommentar und einer Abspiel-Simulation ohne Audio.
+
+**Abo** — drei Tarife (Digital, Print, Soli) als Karten, darunter das vollständige
+Anmeldeformular: Name, E-Mail, Tarifwahl, Versandintervall, Interessen, Adresse (nur bei
+Print und Soli), Kommentar mit Zeichenzähler, Einwilligung und ein Honeypot gegen Bots.
+Die Validierung läuft beim Verlassen eines Feldes und beim Absenden, danach live; die
+Fehlerzusammenfassung springt zum ersten fehlerhaften Feld. Nach dem simulierten Absenden
+erscheint eine Quittung mit der getroffenen Auswahl. Eine bereits angemeldete Adresse wird
+erkannt und lässt sich aktualisieren oder löschen. Nichts davon verlässt das Gerät.
+
+## Technik
+
+- **Aufbau** — `index.html` (Markup), `assets/css/style.css` (Design-System),
+  `assets/js/data.js` (Redaktionsinhalte), `assets/js/artwork.js` (Grafik),
+  `assets/js/app.js` (Verhalten). Klassische Scripts mit `defer`, keine Module.
+- **Grafik** — sämtliche Cover und Porträts entstehen zur Laufzeit als Inline-SVG:
+  Risographie-Duoton mit versetzten Farbflächen, Halbtonraster und Korn. Ein Seed pro Motiv
+  über einen eigenen Zufallsgenerator, also bei jedem Laden dasselbe Bild. Keine Bilddateien.
+- **Themes** — dunkel ist der Standard, hell folgt einer ausdrücklichen Systemvorgabe oder
+  der gespeicherten Wahl; der Umschalter sitzt in der Kopfzeile.
+- **Barrierefreiheit** — semantische Landmarken, Sprungmarke, sichtbarer Fokus, vollständige
+  Tastaturbedienung, `aria-live` für Trefferzahl, Fehler und Erfolg, WCAG-AA-Kontraste in
+  beiden Themes, `prefers-reduced-motion` schaltet Bewegung ab.
+- **Speicher** — `localStorage` unter `rille.thema`, `rille.lesemodus.groesse`,
+  `rille.abo.v1` und `rille.abo.entwurf.v1`, jeder Zugriff abgesichert: ist der Speicher
+  blockiert, läuft die Seite unverändert weiter.
+- **Responsiv** — 360 px bis 1600 px ohne horizontales Scrollen, eigenes Druck-Stylesheet.

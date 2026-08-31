@@ -122,6 +122,44 @@
     }
   }
 
+  /* Solange ein Zeiger gedrueckt ist, darf keine Pruefung Text einfuegen.
+     Der focusout eines Feldes faellt mit dem mousedown/pointerdown des naechsten
+     Klicks zusammen: Die eingefuegte Fehlerzeile schiebt alles darunter nach
+     unten, mouseup landet auf einem anderen Element als mousedown - und der
+     Klick geht verloren (auf Schmalgeraeten trifft es ganze Tarifkarten).
+     Deshalb wird solche Arbeit bis nach dem Loslassen aufgeschoben; AF 3.0
+     bleibt gewahrt, geprueft wird weiterhin beim Verlassen des Feldes. */
+  let zeigerUnten = false;
+  const zeigerWarteschlange = [];
+  let zeigerNotbremse = 0;
+
+  function zeigerFreigeben() {
+    zeigerUnten = false;
+    if (zeigerNotbremse) { window.clearTimeout(zeigerNotbremse); zeigerNotbremse = 0; }
+    if (!zeigerWarteschlange.length) { return; }
+    // Erst nach mouseup/click ausfuehren, sonst verschiebt sich das Klickziel doch noch.
+    window.setTimeout(function () {
+      while (zeigerWarteschlange.length) {
+        const arbeit = zeigerWarteschlange.shift();
+        try { arbeit(); } catch (fehler) { /* eine Pruefung darf die naechste nicht reissen */ }
+      }
+    }, 0);
+  }
+
+  document.addEventListener('pointerdown', function () {
+    zeigerUnten = true;
+    if (zeigerNotbremse) { window.clearTimeout(zeigerNotbremse); }
+    // Falls das Loslassen ausserhalb des Fensters passiert und nie ankommt.
+    zeigerNotbremse = window.setTimeout(zeigerFreigeben, 1200);
+  }, true);
+  document.addEventListener('pointerup', zeigerFreigeben, true);
+  document.addEventListener('pointercancel', zeigerFreigeben, true);
+
+  function sobaldZeigerFrei(arbeit) {
+    if (!zeigerUnten) { arbeit(); return; }
+    zeigerWarteschlange.push(arbeit);
+  }
+
   /* Live-Region: erst leeren, im naechsten Frame setzen. Sonst verschlucken
      manche Screenreader zwei gleichlautende Meldungen hintereinander. */
   function melde(bereich, text) {
@@ -1089,7 +1127,16 @@
     zustand.letzterFokus = vorher ? alterFokus : (ausloeser || document.activeElement);
 
     const inhalt = id(dialogName === 'lesemodus' ? 'lesemodus-inhalt' : 'kuenstlerblatt-inhalt');
-    if (inhalt) { inhalt.focus(); }
+    if (inhalt) {
+      /* Ohne preventScroll rollt der Browser den Inhalt buendig an den oberen
+         Rand des Panels - die klebende Leiste deckt dann die ersten Zeilen der
+         Ueberschrift zu (bei 360 px rund 68 px). Erst ohne Scrollen
+         fokussieren, dann das Panel selbst an den Anfang setzen. */
+      try { inhalt.focus({ preventScroll: true }); }
+      catch (fehler) { inhalt.focus(); }
+      const panel = inhalt.closest('.overlay__panel');
+      if (panel) { panel.scrollTop = 0; }
+    }
   }
 
   function schliesseOverlay(fokusZurueck) {
@@ -2593,10 +2640,12 @@
       if (eintrag.kontrolle) { return; }  // Checkbox-Blur ist kein Fehlerauslöser (AF 3.8)
 
       eintrag.beruehrt = true;
-      if (name === 'plz') { plzBereinigen(); }
-      pruefeFeld(name);
-      if (name === 'email') { pruefeEmailNotiz(); }
-      aktualisiereFehlerliste();
+      sobaldZeigerFrei(function () {
+        if (name === 'plz') { plzBereinigen(); }
+        pruefeFeld(name);
+        if (name === 'email') { pruefeEmailNotiz(); }
+        aktualisiereFehlerliste();
+      });
     });
 
     form.addEventListener('input', function (ereignis) {
@@ -2613,6 +2662,34 @@
       }
       if (name === 'email') { verbergeEmailNotiz(); }
       planeEntwurf();
+    });
+
+    /* Einfuegen in die PLZ: das Feld traegt die knappe maxlength aus den Daten
+       (5 bzw. 4). Ein eingefuegtes „D-44137“ kuerzt der Browser auf „D-441“,
+       bevor plzVorspannWeg() das Laenderkuerzel entfernen kann - uebrig bliebe
+       „441“. Darum wird der eingefuegte Text vorher gesaeubert (AF 3.7). */
+    form.addEventListener('paste', function (ereignis) {
+      const ziel = ereignis.target;
+      if (!ziel || ziel.id !== 'abo-plz' || !ereignis.clipboardData) { return; }
+
+      const land = aktuellesLand();
+      let eingefuegt = String(ereignis.clipboardData.getData('text') || '')
+        .replace(/\s{2,}/g, ' ').trim();
+      if (land && land.code !== 'EU') {
+        eingefuegt = eingefuegt.replace(/^(D|A|CH)[- ]?(?=\d)/i, '');
+      }
+      ereignis.preventDefault();
+
+      const anfang = (ziel.selectionStart === null) ? ziel.value.length : ziel.selectionStart;
+      const ende = (ziel.selectionEnd === null) ? ziel.value.length : ziel.selectionEnd;
+      const grenze = Number(ziel.getAttribute('maxlength')) || 0;
+      let wert = ziel.value.slice(0, anfang) + eingefuegt + ziel.value.slice(ende);
+      if (grenze > 0) { wert = wert.slice(0, grenze); }
+      ziel.value = wert;
+
+      const marke = Math.min(anfang + eingefuegt.length, wert.length);
+      try { ziel.setSelectionRange(marke, marke); } catch (fehler) { /* egal */ }
+      ziel.dispatchEvent(new Event('input', { bubbles: true }));
     });
 
     form.addEventListener('change', function (ereignis) {
