@@ -50,12 +50,15 @@ erkannt und lässt sich aktualisieren oder löschen. Nichts davon verlässt das 
 - **Grafik** — sämtliche Cover und Porträts entstehen zur Laufzeit als Inline-SVG:
   Risographie-Duoton mit versetzten Farbflächen, Halbtonraster und Korn. Ein Seed pro Motiv
   über einen eigenen Zufallsgenerator, also bei jedem Laden dasselbe Bild. Keine Bilddateien.
-- **Themes** — dunkel ist der Standard, hell folgt einer ausdrücklichen Systemvorgabe oder
-  der gespeicherten Wahl; der Umschalter sitzt in der Kopfzeile.
+- **Themes** — dunkel ist der Standard. Der Umschalter in der Kopfzeile wechselt auf hell und
+  merkt sich die Wahl. (Chromium meldet „keine Systemvorgabe" und „ausdrücklich hell" identisch,
+  deshalb entscheidet allein der Umschalter — sonst startete die Seite auf den meisten Rechnern
+  hell, obwohl dunkel das Standardthema ist.)
 - **Barrierefreiheit** — semantische Landmarken, Sprungmarke, sichtbarer Fokus, vollständige
   Tastaturbedienung, `aria-live` für Trefferzahl, Fehler und Erfolg, WCAG-AA-Kontraste in
   beiden Themes, `prefers-reduced-motion` schaltet Bewegung ab.
 - **Speicher** — `localStorage` unter `rille.thema`, `rille.lesemodus.groesse`,
   `rille.abo.v1` und `rille.abo.entwurf.v1`, jeder Zugriff abgesichert: ist der Speicher
   blockiert, läuft die Seite unverändert weiter.
-- **Responsiv** — 360 px bis 1600 px ohne horizontales Scrollen, eigenes Druck-Stylesheet.
+- **Responsiv** — 320 px bis 1600 px ohne horizontales Scrollen, eigenes Druck-Stylesheet
+  (schwarz auf weiß, ohne Navigation, Formular und Grafik).

@@ -76,7 +76,7 @@
 
   const mqBreit = fensterFrage('(min-width: 900px)');
   const mqRuhe = fensterFrage('(prefers-reduced-motion: reduce)');
-  const mqHell = fensterFrage('(prefers-color-scheme: light)');
+  const mqDunkel = fensterFrage('(prefers-color-scheme: dark)');
 
   /* ============================================================
      2 · WERKZEUG
@@ -343,20 +343,19 @@
   }
 
   function themaStarten() {
+    /* Dunkel ist das Standardthema des Hauses. Ein Browser, der keine
+       Systemvorgabe kennt, meldet in Chromium dasselbe wie einer mit
+       ausdruecklich hellem System - deshalb entscheidet allein die
+       gespeicherte Wahl aus dem Umschalter ueber Hell. */
     const gespeichert = liesText(SCHLUESSEL.thema);
-    if (gespeichert === 'dark' || gespeichert === 'light') {
-      themaAnwenden(gespeichert);
-    } else if (mqHell && mqHell.matches) {
-      themaAnwenden('light');
-    } else {
-      themaAnwenden('dark');
-    }
+    themaAnwenden(gespeichert === 'light' ? 'light' : 'dark');
 
-    if (mqHell && typeof mqHell.addEventListener === 'function') {
-      mqHell.addEventListener('change', function (ereignis) {
-        const merker = liesText(SCHLUESSEL.thema);
-        if (merker === 'dark' || merker === 'light') { return; }
-        themaAnwenden(ereignis.matches ? 'light' : 'dark');
+    /* Wechselt das System auf Dunkel, folgt die Seite - solange niemand
+       ausdruecklich Hell gewaehlt hat. */
+    if (mqDunkel && typeof mqDunkel.addEventListener === 'function') {
+      mqDunkel.addEventListener('change', function (ereignis) {
+        if (liesText(SCHLUESSEL.thema) === 'light') { return; }
+        if (ereignis.matches) { themaAnwenden('dark'); }
       });
     }
   }
@@ -532,7 +531,13 @@
     if (!liste) { return; }
     leere(liste);
 
-    const eintraege = [{ id: 'alle', label: 'Alle', anzahl: daten.artikel.length }];
+    const eintraege = [{
+      id: 'alle',
+      label: 'Alle',
+      anzahl: daten.artikel.filter(function (artikel) {
+        return artikel.id !== daten.aufmacherId;
+      }).length
+    }];
     daten.rubriken.forEach(function (rubrik) {
       const anzahl = daten.artikel.filter(function (artikel) {
         return artikel.rubrikId === rubrik.id;
@@ -552,6 +557,19 @@
       punkt.appendChild(knopf);
       liste.appendChild(punkt);
     });
+  }
+
+  /* Die Chipleiste rollt auf schmalen Schirmen waagerecht. Das Attribut sagt
+     der CSS, an welcher Seite noch etwas ausserhalb des Bildes steht. */
+  function markiereRollrand() {
+    const liste = id('filterliste');
+    if (!liste) { return; }
+    const rest = liste.scrollWidth - liste.clientWidth;
+    if (rest <= 1) { liste.removeAttribute('data-rollbar'); return; }
+    const links = liste.scrollLeft > 1;
+    const rechts = liste.scrollLeft < rest - 1;
+    liste.setAttribute('data-rollbar',
+      links && rechts ? 'beide' : links ? 'links' : 'rechts');
   }
 
   function aktualisiereChips() {
@@ -589,9 +607,18 @@
     }
   }
 
+  /* Ohne Filter und ohne Suche bleibt der Aufmacher dem Raster fern: er steht
+     bereits gross am Seitenanfang. Gefiltert oder gesucht zaehlt er wieder mit,
+     sonst fehlte er in seiner eigenen Rubrik. */
+  function aufmacherAusblenden() {
+    return zustand.rubrik === 'alle' && !zustand.suche;
+  }
+
   function ermittleTreffer() {
     const begriffe = suchbegriffe();
+    const ohneAufmacher = aufmacherAusblenden();
     return daten.artikel.filter(function (artikel) {
+      if (ohneAufmacher && artikel.id === daten.aufmacherId) { return false; }
       if (zustand.rubrik !== 'alle' && artikel.rubrikId !== zustand.rubrik) { return false; }
       if (!begriffe.length) { return true; }
       const heuhaufen = suchindex[artikel.id] || '';
@@ -709,6 +736,7 @@
     }
 
     aktualisiereChips();
+    markiereRollrand();
     aktualisiereZaehler(gesamt);
     aktualisiereSuchstatus(gesamt);
     aktualisiereLeerzustand(gesamt);
@@ -812,6 +840,11 @@
     const sortierung = id('sortierung');
     if (sortierung) { sortierung.value = 'datum-neu'; }
     rendereBeitraege();
+    /* Der ausloesende Knopf im Leerzustand ist jetzt weg - ohne diesen Sprung
+       faellt der Tastaturfokus auf <body> zurueck. */
+    const alleChip = document.querySelector('#filterliste [data-rubrik="alle"]');
+    if (alleChip) { alleChip.focus(); }
+    seitenStatus('Filter zurückgesetzt. ' + ermittleTreffer().length + ' Beiträge.');
   }
 
   function mehrLaden() {
@@ -1202,7 +1235,12 @@
           knopf.getAttribute('data-groesse') === wert ? 'true' : 'false');
       });
     }
-    if (speichern) { schreib(SCHLUESSEL.lesegroesse, wert); }
+    /* Nur die Nutzeraktion wird angesagt, nicht das Wiederherstellen beim Start. */
+    if (speichern) {
+      schreib(SCHLUESSEL.lesegroesse, wert);
+      seitenStatus('Schriftgröße ' +
+        (wert === 's' ? 'klein' : wert === 'l' ? 'groß' : 'mittel') + '.');
+    }
   }
 
   /* V27: „RILLE:“ am Absatzanfang und ein Sprecherkuerzel im Muster
@@ -1664,7 +1702,7 @@
       const hilfe = neu('p', 'feld-hilfe', intervall.hilfe);
       hilfe.id = hilfeId;
 
-      zeile.appendChild(feld);
+      beschriftung.insertBefore(feld, beschriftung.firstChild);
       zeile.appendChild(beschriftung);
       zeile.appendChild(hilfe);
       ziel.appendChild(zeile);
@@ -1695,7 +1733,7 @@
       beschriftung.setAttribute('for', feld.id);
       beschriftung.textContent = rubrik.label;
 
-      zeile.appendChild(feld);
+      beschriftung.insertBefore(feld, beschriftung.firstChild);
       zeile.appendChild(beschriftung);
       ziel.appendChild(zeile);
     });
@@ -2982,6 +3020,11 @@
     rendereAufmacher();
     beobachteAufmacherFormat();
     rendereChips();
+    const chipleiste = id('filterliste');
+    if (chipleiste) {
+      chipleiste.addEventListener('scroll', markiereRollrand, { passive: true });
+      window.addEventListener('resize', markiereRollrand, { passive: true });
+    }
     rendereBeitraege();
     rendereKuenstler();
     renderePlaylist();

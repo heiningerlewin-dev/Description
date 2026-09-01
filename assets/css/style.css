@@ -550,7 +550,17 @@ main { display: block; }
 
 main:focus { outline: none; }
 
-/* Sprungziele muessen unter der klebenden Kopfzeile landen. */
+/* Jedes Scrollziel muss unter der klebenden Kopfzeile landen - auch der
+   Fokus beim Tabben (WCAG 2.4.11). scroll-padding wirkt auf den ganzen
+   Bildlaufbereich, scroll-margin nur auf die genannten Elemente. */
+html {
+  scroll-padding-block-start: calc(var(--raum-3xl) + 8px);
+}
+
+@media (min-width: 900px) {
+  html { scroll-padding-block-start: calc(var(--raum-4xl) + 20px); }
+}
+
 .aufmacher,
 .ressort,
 .feld,
@@ -563,6 +573,25 @@ main:focus { outline: none; }
   .ressort,
   .feld,
   .abo-gruppe { scroll-margin-block-start: var(--raum-4xl); }
+}
+
+/* Die Chipleiste rollt unter 900 px waagerecht - der Abblendverlauf am rechten
+   Rand zeigt, dass dahinter noch Rubriken stehen. */
+@media (max-width: 899px) {
+  #filterliste[data-rollbar="rechts"] {
+    mask-image: linear-gradient(to right, #000 86%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, #000 86%, transparent 100%);
+  }
+
+  #filterliste[data-rollbar="links"] {
+    mask-image: linear-gradient(to left, #000 86%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to left, #000 86%, transparent 100%);
+  }
+
+  #filterliste[data-rollbar="beide"] {
+    mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%);
+    -webkit-mask-image: linear-gradient(to right, transparent 0, #000 14%, #000 86%, transparent 100%);
+  }
 }
 
 /* Abstand zwischen den Ressorts (AD 4.4). */
@@ -645,6 +674,13 @@ main:focus { outline: none; }
   font-weight: 700;
   line-height: 1.08;
   letter-spacing: -0.05em;
+}
+
+.wortmarke__wort {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--raum-3xs);
+  white-space: nowrap;
 }
 
 .wortmarke__punkt {
@@ -1289,7 +1325,7 @@ main:focus { outline: none; }
   gap: var(--raum-s);
   inline-size: 100%;
   max-inline-size: var(--breite-schmal);
-  margin-inline: auto;
+  margin-inline: 0 auto;
   margin-block: var(--raum-l);
   padding: var(--raum-m);
   border: var(--linie-fein) solid var(--linie-ui);
@@ -1663,6 +1699,7 @@ main:focus { outline: none; }
   font-size: var(--schrift-s);
   color: var(--farbe-text-leise);
   max-inline-size: 66ch;
+  margin-inline-end: auto;
 }
 
 .playlistzeile {
@@ -1922,6 +1959,28 @@ main:focus { outline: none; }
   margin: -23px -23px var(--raum-s);
 }
 
+/* In der Anzeige stehen die drei Karten nebeneinander: nur eine traegt ein
+   Band, das die uebrigen um seine Hoehe versetzt haette. Deshalb liegt das
+   Band dort ausserhalb des Flusses und alle drei reservieren denselben Kopf -
+   so stehen Name und Preis auf einer Grundlinie. Im Formular stehen die
+   Karten untereinander, dort bleibt das Band im Fluss. */
+.tarife .tarif-karte {
+  --band-hoehe: calc(1.2 * var(--schrift-xs) + 2 * var(--raum-2xs));
+  position: relative;
+  padding-block-start: calc(var(--raum-m) + var(--band-hoehe) + var(--raum-s));
+}
+
+.tarife .tarif-karte--empfehlung {
+  padding-block-start: calc(23px + var(--band-hoehe) + var(--raum-s));
+}
+
+.tarife .tarif-karte__badge {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline: 0;
+  margin: 0;
+}
+
 /* Gewaehlt: Farbe, Rahmenstaerke und Haken - nie nur Farbe (AF 5.4). */
 .tarif-karte--gewaehlt {
   border-width: var(--linie-mittel);
@@ -1933,9 +1992,13 @@ main:focus { outline: none; }
   color: var(--akzent-a);
 }
 
-/* Die ganze Karte ist Klickflaeche; das Radio steckt geclippt darin. */
+/* Die ganze Karte ist Klickflaeche; das Radio steckt geclippt darin.
+   Flex-Spalte, damit das Empfehlungsband per order:-1 an den oberen
+   Kartenrand rueckt statt ueber der Preiszeile zu liegen. */
 .tarif-karte label {
-  display: block;
+  display: flex;
+  flex-direction: column;
+  gap: var(--raum-2xs);
   cursor: pointer;
 }
 
@@ -1980,6 +2043,7 @@ main:focus { outline: none; }
   line-height: 1.45;
   color: var(--farbe-text-leise);
   max-inline-size: 66ch;
+  margin-inline-end: auto;
 }
 
 .abo-block {
@@ -2375,6 +2439,14 @@ main:focus { outline: none; }
   transition: color var(--dauer-mikro) var(--kurve-standard);
 }
 
+.fussgruppe__link,
+.kuenstlerkarte__knopf,
+.artikelkarte__link {
+  display: inline-block;
+  padding-block: 11px;
+  margin-block: -11px;
+}
+
 .fussgruppe__link:hover {
   color: var(--akzent-a);
   text-decoration: underline;
@@ -2386,7 +2458,7 @@ main:focus { outline: none; }
    Wortmarke am unteren Rand. */
 .fusszeile__marke {
   margin-block-start: var(--raum-l);
-  margin-block-end: -0.28em;
+  margin-block-end: -0.08em;
   padding-inline: var(--rand);
   max-inline-size: var(--breite-rand);
   margin-inline: auto;
@@ -2484,7 +2556,7 @@ main:focus { outline: none; }
 @media (min-width: 900px) {
   .overlay__panel {
     inset: var(--raum-l);
-    inset-inline: auto;
+    inset-inline: 0;
     margin-inline: auto;
     inline-size: min(100% - 2 * var(--raum-l), var(--breite-weit));
     border: var(--linie-fein) solid var(--linie-stark);
@@ -2963,8 +3035,16 @@ main:focus { outline: none; }
    Groesse und Linien, nicht ueber Farbe (AD 8.7).
    ============================================================ */
 
+@page {
+  margin: 16mm 14mm;
+}
+
 @media print {
-  :root {
+  /* Die Themenselektoren :root[data-theme=...] schlagen ein blankes :root -
+     ohne diese Liste druckt das dunkle Theme schwarz auf schwarz. */
+  :root,
+  :root[data-theme="dark"],
+  :root[data-theme="light"] {
     color-scheme: light !important;
 
     --flaeche-basis:          #FFFFFF;
@@ -3019,6 +3099,8 @@ main:focus { outline: none; }
   .abo-formular,
   .abo-entwurf,
   .noscript-hinweis,
+  .knopf,
+  .tarif-karte__marke,
   .fusszeile__marke { display: none !important; }
 
   .kopfzeile {
@@ -3026,6 +3108,7 @@ main:focus { outline: none; }
     border-block-end-width: 3px;
   }
 
+  .aufmacher__marken,
   .aufmacher__artwork,
   .artikelkarte__artwork,
   .artikelkarte__marke,
@@ -3035,6 +3118,13 @@ main:focus { outline: none; }
   .aufmacher,
   .ressort,
   .fusszeile { margin-block-start: 12pt; }
+
+  /* Der Aufmacher traegt am Bildschirm Rasterlinien und einen eigenen
+     Innenrand - im Druck begann sein Satz dadurch am Blattrand. */
+  .aufmacher {
+    background-image: none !important;
+    padding-inline: 0;
+  }
 
   .artikelkarte,
   .kuenstlerkarte,

@@ -9,9 +9,8 @@
 (function () {
   try {
     var gespeichert = window.localStorage.getItem('rille.thema');
-    if (gespeichert === 'dark' || gespeichert === 'light') {
-      document.documentElement.setAttribute('data-theme', gespeichert);
-    }
+    document.documentElement.setAttribute('data-theme',
+      gespeichert === 'light' ? 'light' : 'dark');
   } catch (fehler) { /* localStorage kann unter file:// werfen – dann gilt das Systemthema. */ }
 })();
 </script>
@@ -35,7 +34,7 @@
   <div class="kopfzeile__innen inhalt">
 
     <h1 class="wortmarke">
-      RILLE<span class="wortmarke__punkt" aria-hidden="true"></span>
+      <span class="wortmarke__wort">RILLE<span class="wortmarke__punkt" aria-hidden="true"></span></span>
       <span class="wortmarke__beizeile">Magazin für unabhängige Musik</span>
     </h1>
 
@@ -108,7 +107,7 @@
   <div class="ressort__balken" aria-hidden="true"></div>
   <div class="ressort__kopf inhalt">
     <h2 class="ressort__titel" id="beitraege-titel">Aktuelle Beiträge</h2>
-    <p class="ressort__beizeile">Dreizehn Beiträge aus sechs Rubriken. Filtern, suchen, sortieren.</p>
+    <p class="ressort__beizeile">Zwölf weitere Beiträge aus sechs Rubriken. Filtern, suchen, sortieren.</p>
   </div>
 
   <div class="filterleiste inhalt" id="filter">
@@ -381,7 +380,7 @@
 <footer class="fusszeile" id="fuss" aria-labelledby="fuss-titel">
   <h2 class="sr-only" id="fuss-titel">Fußzeile</h2>
   <div class="fusszeile__innen inhalt raster">
-    <nav class="fussgruppe" aria-label="Rubriken">
+    <nav class="fussgruppe" aria-label="Rubriken in der Fußzeile">
       <h3 class="fussgruppe__kopf">Rubriken</h3>
       <ul class="fussgruppe__liste">
         <li><a class="fussgruppe__link" href="#beitraege" data-rubrik="rezension">Rezension</a></li>
