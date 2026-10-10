@@ -28,3 +28,7 @@ Just open `index.html` in any modern browser. No build step, no dependencies.
 | Reset (new random start) | `R` or the **Reset** button |
 | Toggle the trail | **Hide trail** button |
 | Launch a new pendulum aimed at a point | click / tap anywhere |
+
+## Weitere Inhalte
+
+- [Gentoo-Installations-Tutorial](gentoo-install-tutorial.md): KDE Plasma, NVIDIA, Steam, Heroic, MangoHud, GOverlay, Firefox und Audio auf einem Ryzen 5 7500F mit RTX 4070 SUPER, mit Zeitplan für 5 Stunden interaktiv plus Nacht-Build.
