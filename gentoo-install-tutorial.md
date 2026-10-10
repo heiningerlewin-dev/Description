@@ -942,7 +942,7 @@ Konfigurationsänderungen übernehmen, Hinweise lesen, Bauzeiten anschauen:
 dispatch-conf
 eselect news read
 elogv
-qlop -tvHl | sort -k2 | tail -20
+qlop -tvHl
 ```
 
 ### 8.2 Dienste und Gruppen
