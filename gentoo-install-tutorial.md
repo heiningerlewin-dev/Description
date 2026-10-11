@@ -28,7 +28,7 @@ Stand der Paketversionen: Oktober 2026 (stabiler Gentoo-Zweig). Die Versionen ä
 | Firefox | www-client/firefox 153.4.0 (ESR) |
 | PipeWire | media-video/pipewire 1.6.8 |
 | GCC | sys-devel/gcc 15.3.0 (kennt -march=znver4) |
-| Steam | games-util/steam-launcher 1.0.0.87 (steam-overlay, ~amd64) |
+| Steam | games-util/steam-launcher 1.0.0.87-r1 (steam-overlay, ~amd64) |
 | Heroic | games-util/heroic-bin 2.22.3 (::gentoo, ~amd64) |
 | MangoHud | games-util/mangohud 0.8.4 (GURU-Overlay, ~amd64) |
 | gamemode | games-util/gamemode 1.8.2 |
@@ -44,8 +44,8 @@ Stand der Paketversionen: Oktober 2026 (stabiler Gentoo-Zweig). Die Versionen ä
 | A1 Vorbereitung | 30 min | Backup, Live-USB erstellen, BIOS prüfen |
 | A2 Live-System, Netz, Partitionen | 30 min | Booten, WLAN, Platte einrichten |
 | A3 Stage3 und make.conf | 30 min | Grundsystem entpacken, Portage konfigurieren |
-| A4 Chroot: Profil, Locale, Kernel, Bootloader, Netzwerk | 90 min | Binär-Kernel, Firmware, GRUB, systemd, NetworkManager |
-| A5 NVIDIA-Treiber, erster Reboot | 60 min | Treiber bauen (zieht LLVM mit, ~40 min), booten, WLAN testen |
+| A4 Chroot: Profil, Locale, Kernel, Bootloader, Netzwerk (5.1 bis 5.12) | 90 min | Binär-Kernel, Firmware, GRUB, systemd, NetworkManager |
+| A5 NVIDIA-Treiber, erster Reboot (5.13 bis 6) | 40 min | Treiber bauen (ca. 10 min), booten, WLAN und Treiber testen |
 | A6 Nacht-Job vorbereiten und starten | 45 min | Overlays, USE-Flags, Set anlegen, Testlauf, starten |
 | B Nacht | 6 bis 10 h | Plasma, Firefox, Steam-32-Bit, MangoHud, Heroic aus den Quellen |
 | C Nächster Tag | 1 bis 2 h | SDDM, Plasma, 180 Hz, Audio, Steam, Heroic, MangoHud, GOverlay |
@@ -186,7 +186,7 @@ Tastenfolge in fdisk (jeweils mit Enter bestätigen):
 ```text
 g                      neue GPT-Partitionstabelle (löscht alles)
 n  1  Enter  +1G       Partition 1, 1 GiB
-t  1  1                Typ: EFI System
+t  1                   Typ: EFI System (fdisk wählt Partition 1 von selbst)
 n  2  Enter  +16G      Partition 2, 16 GiB
 t  2  19               Typ: Linux swap
 n  3  Enter  Enter     Partition 3, Rest
@@ -194,6 +194,8 @@ t  3  23               Typ: Linux root (x86-64)
 p                      Ergebnis prüfen
 w                      schreiben und beenden
 ```
+
+Solange nur eine Partition existiert, fragt fdisk bei `t` nicht nach der Nummer. Fragt es doch, `1` eingeben. Fragt fdisk, ob eine alte Signatur entfernt werden soll (Reste von CachyOS), mit `Y` bestätigen.
 
 ### 3.3 Dateisysteme anlegen
 
@@ -325,7 +327,7 @@ Hinweise:
 
 ---
 
-## 5. Chroot und Grundsystem (etwa 90 min)
+## 5. Chroot und Grundsystem (etwa 90 min bis 5.12, dazu etwa 15 min für den NVIDIA-Treiber in 5.13)
 
 ### 5.1 In das neue System wechseln
 
@@ -404,9 +406,9 @@ cat > /etc/hosts <<'EOF'
 EOF
 ```
 
-### 5.6 Welt aktualisieren (optional jetzt, sonst nachts)
+### 5.6 @world aktualisieren (optional jetzt, sonst nachts)
 
-Der Profilwechsel und die CPU-Flags ändern einige USE-Flags. Schau, wie viel Portage neu bauen will:
+`@world` ist das Set aus allen bewusst installierten Paketen, dem Grundsystem und den Paketen des Profils. Der Profilwechsel und die CPU-Flags ändern einige USE-Flags. Schau, wie viel Portage neu bauen will:
 
 ```bash
 emerge --pretend --update --deep --newuse @world | tail -5
@@ -422,30 +424,27 @@ Sind es deutlich mehr, überspringen. Der Nacht-Job (Abschnitt 7) macht diesen S
 
 ### 5.7 Firmware und Binär-Kernel
 
-Festlegen, dass der Kernel-Installer dracut (Initramfs) und GRUB (Menü-Update) nutzt. Das Flag `systemd` kommt vom Profil:
+Festlegen, dass der Kernel-Installer dracut (Initramfs) und GRUB (Menü-Update) nutzt. Das Flag `systemd` kommt vom Profil. Binär-Kernel und Firmware werden in einem Durchgang installiert, denn `linux-firmware` setzt mit dem globalen `USE="dist-kernel"` einen Distributions-Kernel voraus. Stünde kein Kernel im selben Befehl, würde Portage den Quell-Kernel `sys-kernel/gentoo-kernel` auswählen und ihn jetzt kompilieren.
 
 ```bash
 mkdir -p /etc/portage/package.use
 cat > /etc/portage/package.use/kernel <<'EOF'
 sys-kernel/installkernel dracut grub
 EOF
-emerge --ask sys-kernel/installkernel sys-kernel/linux-firmware
+emerge --ask sys-kernel/installkernel sys-kernel/gentoo-kernel-bin sys-kernel/linux-firmware
 ```
 
-`linux-firmware` bringt WLAN-Firmware, AMD-Microcode und Audio-Firmware mit (ca. 1 GB). Dann den Binär-Kernel:
-
-```bash
-emerge --ask sys-kernel/gentoo-kernel-bin
-```
-
-Das zieht `sys-kernel/dracut` und `sys-boot/grub` mit, baut das Initramfs (mit AMD-Microcode) und schreibt den Kernel nach `/boot`. Prüfen:
+In der Paketliste muss `sys-kernel/gentoo-kernel-bin` stehen, nicht `sys-kernel/gentoo-kernel` ohne `-bin`. Die Flags `dracut grub` ziehen `sys-kernel/dracut` und `sys-boot/grub` mit. `linux-firmware` bringt WLAN-Firmware, AMD-Microcode und Audio-Firmware (ca. 1 GB). Der Kernel landet in `/boot`, das Initramfs (mit AMD-Microcode) baut dracut. Prüfen:
 
 ```bash
 ls -la /boot
 eselect kernel list
+grep -E '^(# )?CONFIG_MODULE_SIG(_FORCE)?[= ]' /usr/src/linux-*-gentoo-dist-bin/.config
 ```
 
 In `/boot` liegen `kernel-6.18.54-gentoo-dist-bin` und `initramfs-6.18.54-gentoo-dist-bin.img` (Versionsnummer variiert). Die Datei heißt mit systemd `kernel-*`, nicht `vmlinuz-*`.
+
+Die letzte Ausgabe darf kein `CONFIG_MODULE_SIG_FORCE=y` enthalten. Stünde es dort, würde der Binär-Kernel nur signierte Module laden und das NVIDIA-Modul nie. In dem Fall jetzt den Quell-Kernel bauen (`emerge --ask sys-kernel/gentoo-kernel`, 30 bis 60 Minuten, danach `eselect kernel set linux-6.18.54-gentoo-dist`) und beim ersten Start im GRUB-Menü den Eintrag ohne `-bin` wählen. Beim Quell-Kernel ist die Modulsignierung mit den Standard-USE-Flags aus.
 
 Falls der Kernel-Installer mit "Dracut will be run from inside a chroot but no cmdline for dracut was configured" abbricht (passiert nur mit älterem dracut):
 
@@ -561,26 +560,41 @@ Für den ersten Test bauen wir nur die 64-Bit-Variante ohne das GTK-Werkzeug nvi
 ```bash
 cat > /etc/portage/package.use/nvidia <<'EOF'
 x11-drivers/nvidia-drivers -tools
+# Mesa ohne LLVM: wir brauchen keinen llvmpipe-Software-Renderer.
+# Erlaubt, weil VIDEO_CARDS weder i915 noch lavapipe, radeon oder r300 enthaelt.
+# Spart jetzt den LLVM-Bau im Chroot und nachts das 32-Bit-LLVM.
+media-libs/mesa -llvm
 EOF
 emerge --ask x11-drivers/nvidia-drivers
 ```
 
-Das zieht Mesa und LLVM 22 als Abhängigkeiten mit (LLVM braucht etwa 40 Minuten, wird später sowieso für Firefox gebraucht). Das Modul selbst ist in wenigen Minuten gebaut. Der Treiber installiert `/etc/modprobe.d/nvidia.conf` selbst (Blacklist für nouveau, Suspend-Optionen). Diese Datei nicht bearbeiten.
+Das zieht über egl-gbm und egl-wayland Mesa als GBM/EGL-Unterbau mit. Ohne LLVM sind das nur wenige Minuten, das Modul selbst ist ebenfalls schnell gebaut. LLVM und clang kommen erst nachts für Firefox. Der Treiber installiert `/etc/modprobe.d/nvidia.conf` selbst (Blacklist für nouveau, Suspend-Optionen). Diese Datei nicht bearbeiten.
 
-Ein Punkt für später: dracut nimmt die NVIDIA-Module beim Bauen des Initramfs mit, weil sie zur GPU passen. Nach jedem Treiber-Update müssten dann Initramfs und Treiber zusammenpassen. Einfacher: die Module aus dem Initramfs heraushalten, sie werden nach dem Boot vom laufenden System geladen:
+Das Modul `nvidia-drm` hat keinen PCI-Alias und wird deshalb nicht automatisch geladen. Ohne dieses Modul findet KWin kein DRM-Gerät und SDDM bleibt schwarz (im Journal steht dann "No suitable DRM devices have been found"). Also fest eintragen:
 
 ```bash
-cat > /etc/dracut.conf.d/90-nvidia.conf <<'EOF'
-omit_drivers+=" nvidia nvidia-drm nvidia-modeset nvidia-uvm nvidia-peermem "
-EOF
+mkdir -p /etc/modules-load.d
+echo 'nvidia-drm' > /etc/modules-load.d/nvidia-drm.conf
+```
+
+Um das Initramfs musst du dich nicht selbst kümmern: der Treiber legt beim Installieren `/usr/lib/dracut/dracut.conf.d/10-nvidia-drivers.conf` an. Darin stehen `omit_drivers+=" nvidia nvidia-drm nvidia-modeset nvidia-peermem nvidia-uvm "` und `install_items+=" /etc/modprobe.d/nvidia.conf "`. Die NVIDIA-Module bleiben also aus dem Initramfs draußen und werden erst vom laufenden System geladen, die nouveau-Blacklist wandert dagegen hinein. Eine eigene dracut-Datei ist nicht nötig.
+
+Wichtig, nicht überspringen: das Initramfs aus Abschnitt 5.7 wurde gebaut, bevor der Treiber da war. Es enthält nouveau und noch keine Blacklist, und der Treiber baut es nicht selbst neu. Deshalb jetzt einmal von Hand:
+
+```bash
 emerge --config sys-kernel/gentoo-kernel-bin
 ```
 
-Der letzte Befehl baut Initramfs und GRUB-Menü neu.
+Der Befehl baut Initramfs und GRUB-Menü neu. Zur Kontrolle (optional) darf in der Ausgabe weder nvidia noch nouveau auftauchen:
+
+```bash
+lsinitrd /boot/initramfs-*-gentoo-dist-bin.img | grep -E 'nvidia|nouveau'
+```
 
 ### 5.14 Chroot verlassen und neu starten
 
 ```bash
+rm /stage3-*.tar.* /stage3.sha256.verified
 exit
 cd /
 umount -l /mnt/gentoo/dev{/shm,/pts,}
@@ -629,15 +643,15 @@ nvidia-smi
 cat /sys/module/nvidia_drm/parameters/modeset /sys/module/nvidia_drm/parameters/fbdev
 ```
 
-`nvidia-smi` muss die RTX 4070 SUPER und die Treiberversion anzeigen, die letzte Zeile zweimal `Y`.
+`nvidia-smi` muss die RTX 4070 SUPER und die Treiberversion anzeigen, die letzte Zeile zweimal `Y`. Zeigt `lsmod` zwar `nvidia`, aber kein `nvidia_drm`: `sudo modprobe nvidia-drm` ausführen und prüfen, dass die Datei `/etc/modules-load.d/nvidia-drm.conf` aus Abschnitt 5.13 existiert.
 
-Wenn `lsmod` nichts zeigt:
+Wenn `lsmod` gar nichts zeigt:
 
 ```bash
-sudo dmesg | grep -iE 'nvidia|nvrm'
+sudo dmesg | grep -iE 'nvidia|nvrm|nouveau'
 ```
 
-Steht dort `Key was rejected by service` oder `unsigned module loading is restricted`, ist Secure Boot noch aktiv. Im UEFI abschalten.
+Steht dort `Key was rejected by service` oder `unsigned module loading is restricted`, ist Secure Boot noch aktiv (im UEFI abschalten) oder der Kernel erzwingt Modulsignaturen (Prüfung in Abschnitt 5.7). Steht dort, dass `nouveau` geladen wurde, fehlt der Initramfs-Neubau aus Abschnitt 5.13.
 
 ### 6.3 Tastatur für Login-Bildschirm und Plasma
 
@@ -685,10 +699,10 @@ emaint sync -r guru
 Das Steam-Overlay wird laut Ankündigung vom Oktober 2026 demnächst in das Haupt-Repository überführt. Prüfen, ob `games-util/steam-launcher` schon dort liegt:
 
 ```bash
-emerge --search steam-launcher | grep -E 'steam-launcher|Latest'
+ls -d /var/db/repos/*/games-util/steam-launcher
 ```
 
-Zeigt die Ausgabe eine Version aus `::gentoo`, kann das Overlay weggelassen werden.
+Erscheint nur `/var/db/repos/steam-overlay/games-util/steam-launcher`, wird das Overlay noch gebraucht. Erscheint zusätzlich `/var/db/repos/gentoo/games-util/steam-launcher`, ist das Paket im Haupt-Repository angekommen: dann `eselect repository disable steam-overlay`. Die Keyword-Zeile in 7.2 bleibt in beiden Fällen stehen.
 
 ### 7.2 Keywords für Pakete, die noch nicht stabil sind
 
@@ -716,7 +730,8 @@ cat > /etc/portage/package.use/nvidia <<'EOF'
 # 32-Bit-Bibliotheken fuer Steam/Proton, nvidia-settings
 x11-drivers/nvidia-drivers abi_x86_32 tools
 media-libs/libglvnd abi_x86_32
-media-libs/mesa abi_x86_32
+# Mesa bleibt ohne LLVM (siehe 5.13), sonst wuerde nachts ein 32-Bit-LLVM gebaut
+media-libs/mesa abi_x86_32 -llvm
 media-libs/vulkan-loader abi_x86_32
 media-libs/vulkan-layers abi_x86_32
 gui-libs/egl-gbm abi_x86_32
@@ -759,15 +774,21 @@ media-libs/implot abi_x86_32
 x11-libs/libxkbcommon abi_x86_32
 sys-apps/dbus abi_x86_32
 dev-libs/wayland abi_x86_32
+# gamemode-Client auch in 32 Bit, damit gamemoderun native 32-Bit-Spiele erfasst
+games-util/gamemode abi_x86_32
 # Steam-Helfer
 media-libs/fontconfig abi_x86_32
 sys-libs/libudev-compat abi_x86_32
+# Steam Input unter Wayland ueber XWayland (sonst wuerde x11-libs/extest aus dem Overlay verlangt)
+x11-base/xwayland libei
+# vkcube fuer den Vulkan-Test in Abschnitt 10.1
+dev-util/vulkan-tools cube
 EOF
 ```
 
-Zur Einordnung: `abi_x86_32` baut eine Bibliothek zusätzlich in 32 Bit. Das Steam-Client ist 32-Bit, Proton braucht 32-Bit-Vulkan. Portage fragt in 7.5 nach weiteren Flags, die hier noch fehlen.
+Zur Einordnung: `abi_x86_32` baut eine Bibliothek zusätzlich in 32 Bit. Der Steam-Client ist 32-Bit, Proton braucht 32-Bit-Vulkan. Portage fragt in 7.5 nach weiteren Flags, die hier noch fehlen.
 
-RAM-Sicherung für die größten Pakete (zwei parallele Jobs mit je 12 Threads könnten 32 GB sprengen):
+Weniger Threads für die größten Pakete, damit der Speicher reicht (zwei parallele Jobs mit je 12 Threads könnten 32 GB sprengen):
 
 ```bash
 mkdir -p /etc/portage/env
@@ -854,7 +875,7 @@ grep -c '^\[ebuild' /root/pretend.log
 grep -iE 'qtwebengine|llvm-core' /root/pretend.log
 ```
 
-Erwartet: etwa 600 bis 900 Pakete, kein `dev-qt/qtwebengine`, LLVM nur im Slot 22 (einmal 64-Bit mit `ABI_X86="32*"` für die 32-Bit-Variante, dazu clang und lld). Taucht `qtwebengine` doch auf, zeigt `equery depends dev-qt/qtwebengine`, wer es zieht.
+Erwartet: etwa 600 bis 900 Pakete, kein `dev-qt/qtwebengine`, und alle `llvm-core/*`-Zeilen (llvm, clang, lld) nur im Slot `:22` und nur in 64 Bit. Taucht `qtwebengine` doch auf, zeigt `equery depends dev-qt/qtwebengine`, wer es zieht. Taucht `llvm-core/llvm` mit `ABI_X86="32*"` auf, fehlt die Zeile `media-libs/mesa abi_x86_32 -llvm` aus 7.3.
 
 Eine Meldung über Lizenzen darf nicht mehr kommen, dafür sorgt `ACCEPT_LICENSE` in der make.conf. Eine Meldung über "masked by: ~amd64 keyword" bedeutet: Paket in 7.2 nachtragen.
 
@@ -910,7 +931,7 @@ sudo genlop -c
 sudo tail -f /var/log/nacht-*.log
 ```
 
-Erwartete Dauer auf dem 7500F: 6 bis 10 Stunden. Die größten Brocken sind Qt (ca. 1 h), KDE Frameworks und Plasma (2 bis 3 h), clang/lld (ca. 45 min), 32-Bit-LLVM für Mesa (ca. 40 min), Firefox (ca. 1 h) und die 32-Bit-Bibliotheken für Steam (ca. 1 h). Das sind Schätzwerte, die echten Zeiten zeigt morgens `qlop -tvHl`.
+Erwartete Dauer auf dem 7500F: 6 bis 10 Stunden. Die größten Brocken sind Qt (ca. 1 h), KDE Frameworks und Plasma (2 bis 3 h), LLVM, clang und lld in 64 Bit für Firefox (1 bis 1,5 h), nodejs als Firefox-Bauabhängigkeit (20 bis 40 min), Firefox selbst (ca. 1 h) und die 32-Bit-Bibliotheken für Steam (ca. 1 h). Das sind Schätzwerte, die echten Zeiten zeigt morgens `qlop -tvH -d yesterday`.
 
 ---
 
@@ -936,13 +957,20 @@ ls /var/log/portage/build/*/
 less /var/log/portage/build/<kategorie>/<paket>-<version>:<datum>.log
 ```
 
+Sind alle Pakete gebaut, Bibliotheksreste und verwaiste Pakete aufräumen. Beides ist harmlos, wenn es nichts zu tun gibt:
+
+```bash
+emerge --ask @preserved-rebuild
+emerge --ask --depclean
+```
+
 Konfigurationsänderungen übernehmen, Hinweise lesen, Bauzeiten anschauen:
 
 ```bash
 dispatch-conf
 eselect news read
 elogv
-qlop -tvHl
+qlop -tvH -d yesterday
 ```
 
 ### 8.2 Dienste und Gruppen
@@ -995,8 +1023,8 @@ Voraussetzung: DisplayPort-Kabel. Im Monitor-OSD "Adaptive-Sync" beziehungsweise
 Systemeinstellungen > Anzeige und Monitor > Anzeige-Einrichtung:
 
 - Bildwiederholrate: 180 Hz
-- Adaptive Synchronisation: Automatisch (Plasma setzt hier standardmäßig "Nie", das muss man umstellen)
-- Ganz unten: "Screen tearing: In Vollbildfenstern erlauben" anhaken (weniger Latenz in Spielen)
+- Adaptive Sync: Automatisch (für einen neu erkannten Monitor trägt KWin "Niemals" ein, das muss man umstellen)
+- Ganz unten die Option zum Screen Tearing ("Im Vollbildmodus erlauben"): ist standardmäßig aktiv, nur kontrollieren (weniger Latenz in Spielen)
 
 Per Terminal prüfen und setzen:
 
@@ -1015,7 +1043,14 @@ echo 'gui-apps/sddm-gentoo-config kwin' | sudo tee /etc/portage/package.use/sddm
 sudo emerge --ask --oneshot --newuse gui-apps/sddm-gentoo-config
 ```
 
-Danach in Systemeinstellungen > Farben und Design > Anmeldebildschirm (SDDM) auf "Plasma-Einstellungen anwenden" klicken. Zeigt der Login danach nur Schwarz, das Flag wieder entfernen und den Befehl wiederholen.
+Danach in Systemeinstellungen > Farben und Design > Anmeldebildschirm (SDDM) auf "Plasma-Einstellungen anwenden" klicken. Das kopiert die Bildschirmkonfiguration (180 Hz) zum sddm-Benutzer. Passiert beim Klick nichts, den Dialog aus einem Terminal mit `kcmshell6 kcm_sddm` öffnen und dort klicken.
+
+Bleibt der Login-Bildschirm danach schwarz (im Journal `No suitable DRM devices have been found`), startet der Wayland-Greeter auf NVIDIA zu früh. Mit `Strg+Alt+F3` auf eine Konsole wechseln, anmelden und zum X11-Greeter zurück:
+
+```bash
+sudo rm /etc/portage/package.use/sddm
+sudo emerge --ask --oneshot --newuse gui-apps/sddm-gentoo-config
+```
 
 ### 9.3 Audio: NVIDIA HDMI/DP-Audio
 
@@ -1156,7 +1191,7 @@ flatpak install flathub io.github.benjamimgois.goverlay
 
 Flatpak lädt dabei automatisch die passende NVIDIA-Runtime (`org.freedesktop.Platform.GL.nvidia-595-104-02`). GOverlay aus dem Anwendungsmenü starten, Einstellungen anpassen, "Speichern". Es schreibt dieselbe Datei `~/.config/MangoHud/MangoHud.conf`, die Steam und Heroic benutzen. Der GameMode-Schalter ist im Flatpak ausgeblendet, gamemode wird stattdessen über `gamemoderun` in den Startoptionen gesteuert.
 
-Alternativen: das AppImage von https://github.com/benjamimgois/goverlay/releases oder die Gentoo-Version `games-util/goverlay` aus GURU. Letztere ist Version 1.2 (sehr alt) und braucht den Free-Pascal- und Lazarus-Compiler (`dev-lang/lazarus qt6`, `dev-lang/fpc source` in package.use).
+Alternativen: das AppImage von https://github.com/benjamimgois/goverlay/releases oder die Gentoo-Version `games-util/goverlay` aus GURU. Letztere ist Version 1.2 (sehr alt) und braucht den Free-Pascal- und Lazarus-Compiler: `games-util/goverlay ~amd64` in package.accept_keywords, dazu `dev-lang/lazarus qt6 -gtk -gtk2` und `dev-lang/fpc source` in package.use, weil das Desktop-Profil `gtk` global setzt und Lazarus genau ein GUI-Toolkit verlangt. Kostet 20 bis 40 Minuten extra.
 
 Nach jedem Update von `x11-drivers/nvidia-drivers` einmal `flatpak update` ausführen, damit die NVIDIA-Runtime der Flatpaks zur Treiberversion passt.
 
@@ -1239,7 +1274,7 @@ eselect news read
 emerge --ask --verbose --update --deep --newuse @world
 emerge --ask --depclean
 dispatch-conf
-eclean-distfiles
+eclean-dist
 ```
 
 Nach Kernel-Updates baut `dist-kernel` das NVIDIA-Modul automatisch. Nach NVIDIA-Treiber-Updates: Neustart, danach `flatpak update`. Nach größeren Updates:
@@ -1261,7 +1296,10 @@ systemd-networkd ist noch aktiv: `sudo systemctl disable --now systemd-networkd 
 `Strg+Alt+F3`, anmelden, dann `journalctl -b -u sddm` und `journalctl --user -b | grep -i kwin`. Prüfen: `cat /sys/module/nvidia_drm/parameters/modeset` muss `Y` sein, `lsmod | grep nvidia` muss die Module zeigen. Notlösung: im SDDM die Sitzung "Plasma (X11)" wählen.
 
 **NVIDIA-Modul lädt nicht ("Key was rejected", "unsigned module")**
-Secure Boot im UEFI abschalten.
+Secure Boot im UEFI abschalten. Bleibt es dabei, die Signaturprüfung aus Abschnitt 5.7 nachholen (`CONFIG_MODULE_SIG_FORCE`).
+
+**`nvidia` geladen, aber Plasma Wayland findet kein DRM-Gerät**
+`lsmod | grep nvidia_drm` ist leer: Datei `/etc/modules-load.d/nvidia-drm.conf` mit Inhalt `nvidia-drm` anlegen (Abschnitt 5.13) und neu starten.
 
 **Nach einem Treiber-Update: "API mismatch" in dmesg**
 Alte Module werden noch geladen. Neustart. Falls es bleibt: `sudo emerge --config sys-kernel/gentoo-kernel-bin` (Initramfs neu) und Neustart.
@@ -1316,6 +1354,7 @@ super-user-command=sudo
 | USE-Flags eines Pakets | `equery uses kategorie/paket` |
 | Wer braucht Paket X | `equery depends kategorie/paket` |
 | Bauzeiten | `qlop -tvH kategorie/paket` |
+| Bauzeiten der letzten Nacht | `qlop -tvH -d yesterday` |
 | Laufender Build | `genlop -c` oder `qlop -r` |
 | NVIDIA-Modul neu bauen | `emerge --ask @module-rebuild` |
 | Initramfs und GRUB-Menü neu | `emerge --config sys-kernel/gentoo-kernel-bin` |
